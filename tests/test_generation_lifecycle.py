@@ -25,8 +25,32 @@ def test_generation_state_contains_only_bounded_ephemeral_summary() -> None:
         "status",
         "error",
     }
-    assert state.status is GenerationStatus.STREAMING
+    assert state.status is GenerationStatus.CREATED
     assert state.error is None
+
+
+def test_generation_statuses_are_explicit_and_complete() -> None:
+    assert set(GenerationStatus) == {
+        GenerationStatus.CREATED,
+        GenerationStatus.STREAMING,
+        GenerationStatus.COMPLETED,
+        GenerationStatus.STOPPED,
+        GenerationStatus.FAILED,
+    }
+
+
+def test_generation_transitions_from_created_to_streaming() -> None:
+    registry = GenerationRegistry()
+    state = registry.create()
+
+    streaming = registry.transition(
+        state.generation_id,
+        GenerationStatus.STREAMING,
+    )
+
+    assert streaming is not None
+    assert streaming.status is GenerationStatus.STREAMING
+    assert streaming.error is None
 
 
 def test_registry_owns_ephemeral_generation_state() -> None:
@@ -56,6 +80,7 @@ def test_generation_transitions_once_to_non_failure_terminal_state(
 ) -> None:
     registry = GenerationRegistry()
     state = registry.create()
+    registry.transition(state.generation_id, GenerationStatus.STREAMING)
 
     terminal = registry.transition(state.generation_id, terminal_status)
 
@@ -69,6 +94,7 @@ def test_generation_transitions_once_to_non_failure_terminal_state(
 def test_failed_generation_stores_only_bounded_error_summary() -> None:
     registry = GenerationRegistry()
     state = registry.create()
+    registry.transition(state.generation_id, GenerationStatus.STREAMING)
 
     terminal = registry.transition(
         state.generation_id,
@@ -92,6 +118,22 @@ def test_registry_capacity_evicts_terminal_state_but_not_active_state() -> None:
     replacement = registry.create()
     assert registry.get(active.generation_id) is None
     assert registry.get(replacement.generation_id) == replacement
+
+
+@pytest.mark.parametrize(
+    "active_status",
+    [GenerationStatus.CREATED, GenerationStatus.STREAMING],
+)
+def test_terminal_generation_cannot_return_to_active_state(
+    active_status: GenerationStatus,
+) -> None:
+    registry = GenerationRegistry()
+    state = registry.create()
+    registry.transition(state.generation_id, GenerationStatus.STREAMING)
+    registry.transition(state.generation_id, GenerationStatus.COMPLETED)
+
+    with pytest.raises(InvalidGenerationTransitionError, match="already terminal"):
+        registry.transition(state.generation_id, active_status)
 
 
 def test_event_buffer_is_bounded_and_reports_slow_consumer() -> None:

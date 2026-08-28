@@ -13,6 +13,7 @@ GENERATION_EVENT_BUFFER_SIZE = 32
 
 
 class GenerationStatus(StrEnum):
+    CREATED = "created"
     STREAMING = "streaming"
     COMPLETED = "completed"
     STOPPED = "stopped"
@@ -152,7 +153,7 @@ class GenerationRegistry:
             runtime_request_id = self._new_opaque_id()
         state = GenerationState(
             generation_id=generation_id,
-            status=GenerationStatus.STREAMING,
+            status=GenerationStatus.CREATED,
         )
         self._records[generation_id] = _GenerationRecord(
             state=state,
@@ -201,6 +202,14 @@ class GenerationRegistry:
             raise InvalidGenerationTransitionError(
                 f"generation is already terminal: {current.status}"
             )
+        if (
+            current.status is GenerationStatus.CREATED
+            and status is GenerationStatus.STREAMING
+        ):
+            if error is not None:
+                raise ValueError("streaming generations cannot contain an error")
+            record.state = replace(current, status=status)
+            return record.state
         if status not in TERMINAL_GENERATION_STATUSES:
             raise InvalidGenerationTransitionError(
                 f"generation cannot transition to {status}"

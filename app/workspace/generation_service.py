@@ -106,6 +106,10 @@ class GenerationService:
         prompt: str,
     ) -> None:
         try:
+            self._registry.transition(
+                generation_id,
+                GenerationStatus.STREAMING,
+            )
             async for model_event in self._harness.stream(
                 HarnessRequest(
                     request_id=runtime_request_id,

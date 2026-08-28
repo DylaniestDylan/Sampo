@@ -121,14 +121,27 @@ def test_generation_route_requires_configured_runtime() -> None:
 
 def test_backend_generation_service_drives_harness_with_internal_request_id() -> None:
     async def exercise():
-        runtime = FakeModelRuntime(chunks=("response",))
+        gate = asyncio.Event()
+        runtime = FakeModelRuntime(chunks=("response",), chunk_gate=gate)
         service = _service(runtime)
         state = service.create_generation("User prompt")
+        assert state.status is GenerationStatus.CREATED
+        await asyncio.sleep(0)
+        streaming = service.get_generation(state.generation_id)
+        gate.set()
         events = [event async for event in service.stream_events(state.generation_id)]
-        return runtime, state, service.get_generation(state.generation_id), events
+        return (
+            runtime,
+            state,
+            streaming,
+            service.get_generation(state.generation_id),
+            events,
+        )
 
-    runtime, initial, terminal, events = asyncio.run(exercise())
+    runtime, initial, streaming, terminal, events = asyncio.run(exercise())
 
+    assert streaming is not None
+    assert streaming.status is GenerationStatus.STREAMING
     assert runtime.stream_requests[0].user_text == "User prompt"
     assert runtime.stream_requests[0].request_id != initial.generation_id
     assert terminal is not None
