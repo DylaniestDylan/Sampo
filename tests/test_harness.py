@@ -202,6 +202,39 @@ def test_harness_translates_runtime_errors_to_truthful_terminal_events(
     assert not any(isinstance(event, ModelCompleted) for event in events)
 
 
+def test_harness_cancellation_aborts_runtime_and_discards_late_chunks() -> None:
+    async def collect_events():
+        gate = asyncio.Event()
+        cancellation_signal = asyncio.Event()
+        runtime = FakeModelRuntime(chunks=("must not escape",), chunk_gate=gate)
+        harness = ApplicationHarness(
+            runtime=runtime,
+            policy=HarnessPolicy(application_text="Backend policy"),
+            tool_boundary=HarnessToolBoundary(registry=ToolRegistry()),
+        )
+        stream = harness.stream(
+            HarnessRequest(
+                request_id="cancelled-request",
+                user_prompt="User prompt",
+            ),
+            cancellation_signal=cancellation_signal,
+        )
+        started = await anext(stream)
+        next_event = asyncio.create_task(anext(stream))
+        await asyncio.sleep(0)
+        cancellation_signal.set()
+        stopped = await next_event
+        with pytest.raises(StopAsyncIteration):
+            await anext(stream)
+        return runtime, started, stopped
+
+    runtime, started, stopped = asyncio.run(collect_events())
+
+    assert started == ModelStarted(request_id="cancelled-request")
+    assert stopped == ModelStopped(request_id="cancelled-request")
+    assert runtime.abort_calls == ("cancelled-request",)
+
+
 def test_harness_rejects_unexpected_tool_marker_as_bounded_failure() -> None:
     async def collect_events():
         registry = ToolRegistry()

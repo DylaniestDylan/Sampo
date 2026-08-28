@@ -9,7 +9,7 @@ from app.model_runtime.events import (
     ModelStarted,
     ModelToolRequest,
 )
-from app.model_runtime.errors import ModelRuntimeError
+from app.model_runtime.errors import ModelRuntimeError, RuntimeCancelledError
 from app.model_runtime.request import ModelRequest
 
 
@@ -29,6 +29,7 @@ class FakeModelRuntime:
         self._failure_after_chunks = failure_after_chunks
         self._tool_request_after_chunks = tool_request_after_chunks
         self._abort_calls: list[str] = []
+        self._cancelled_request_ids: set[str] = set()
         self._stream_requests: list[ModelRequest] = []
         if not self._chunks or any(not chunk for chunk in self._chunks):
             raise ValueError("chunks must contain at least one non-empty text chunk")
@@ -46,30 +47,43 @@ class FakeModelRuntime:
 
     async def stream_chat(self, request: ModelRequest) -> AsyncIterator[ModelEvent]:
         self._stream_requests.append(request)
-        yield ModelStarted(request_id=request.request_id)
-        if self._tool_request_after_chunks == 0:
-            yield ModelToolRequest(request_id=request.request_id)
-            return
-        for chunk_index, chunk in enumerate(self._chunks):
-            if self._failure is not None and chunk_index == self._failure_after_chunks:
-                raise self._failure
-            if self._chunk_gate is not None:
-                await self._chunk_gate.wait()
-            yield ModelDelta(request_id=request.request_id, text=chunk)
-            if self._tool_request_after_chunks == chunk_index + 1:
+        try:
+            yield ModelStarted(request_id=request.request_id)
+            if self._tool_request_after_chunks == 0:
                 yield ModelToolRequest(request_id=request.request_id)
                 return
-        if (
-            self._failure is not None
-            and self._failure_after_chunks == len(self._chunks)
-        ):
-            raise self._failure
-        yield ModelCompleted(request_id=request.request_id)
+            for chunk_index, chunk in enumerate(self._chunks):
+                if (
+                    self._failure is not None
+                    and chunk_index == self._failure_after_chunks
+                ):
+                    raise self._failure
+                if self._chunk_gate is not None:
+                    await self._chunk_gate.wait()
+                if request.request_id in self._cancelled_request_ids:
+                    raise RuntimeCancelledError("fake runtime request was cancelled")
+                yield ModelDelta(request_id=request.request_id, text=chunk)
+                if self._tool_request_after_chunks == chunk_index + 1:
+                    yield ModelToolRequest(request_id=request.request_id)
+                    return
+            if (
+                self._failure is not None
+                and self._failure_after_chunks == len(self._chunks)
+            ):
+                raise self._failure
+            if request.request_id in self._cancelled_request_ids:
+                raise RuntimeCancelledError("fake runtime request was cancelled")
+            yield ModelCompleted(request_id=request.request_id)
+        finally:
+            self._cancelled_request_ids.discard(request.request_id)
 
     async def abort(self, request_id: str) -> None:
         if not request_id.strip():
             raise ValueError("request_id must not be blank")
         self._abort_calls.append(request_id)
+        self._cancelled_request_ids.add(request_id)
+        if self._chunk_gate is not None:
+            self._chunk_gate.set()
 
     @property
     def abort_calls(self) -> tuple[str, ...]:

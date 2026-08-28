@@ -531,15 +531,15 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.13 — End-to-end cancellation
 
-- [ ] **P01.13.01 — Add `POST /api/generations/{id}/cancel`.** Require the same local-web protections as other state changes.
-- [ ] **P01.13.02 — Add a backend cancellation signal/token owned by the generation service.**
-- [ ] **P01.13.03 — Propagate cancellation into the harness.**
-- [ ] **P01.13.04 — Propagate cancellation from the harness to `ModelRuntime.abort(request_id)`.**
-- [ ] **P01.13.05 — Mark the generation `stopped`, not `completed`, after successful cancellation.**
-- [ ] **P01.13.06 — Prevent post-cancellation runtime chunks from being forwarded as active output.**
-- [ ] **P01.13.07 — Make repeated cancellation idempotent/safely terminal.**
-- [ ] **P01.13.08 — Add deterministic API-level cancellation tests using the fake-runtime gate.**
-- [ ] **P01.13.09 — Add a test proving no hidden generation task continues after terminal stop.**
+- [x] **P01.13.01 — Add `POST /api/generations/{id}/cancel`.** Require the same local-web protections as other state changes.
+- [x] **P01.13.02 — Add a backend cancellation signal/token owned by the generation service.**
+- [x] **P01.13.03 — Propagate cancellation into the harness.**
+- [x] **P01.13.04 — Propagate cancellation from the harness to `ModelRuntime.abort(request_id)`.**
+- [x] **P01.13.05 — Mark the generation `stopped`, not `completed`, after successful cancellation.**
+- [x] **P01.13.06 — Prevent post-cancellation runtime chunks from being forwarded as active output.**
+- [x] **P01.13.07 — Make repeated cancellation idempotent/safely terminal.**
+- [x] **P01.13.08 — Add deterministic API-level cancellation tests using the fake-runtime gate.**
+- [x] **P01.13.09 — Add a test proving no hidden generation task continues after terminal stop.**
 
 **Review checkpoint:** Stop Generation has a mechanically testable effect all the way down to the runtime boundary.
 

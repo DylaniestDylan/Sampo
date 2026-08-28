@@ -1,4 +1,6 @@
+import asyncio
 from collections.abc import AsyncIterator
+from contextlib import suppress
 from dataclasses import dataclass
 
 from app.harness.tools import (
@@ -76,10 +78,48 @@ class ApplicationHarness:
         self._policy = policy
         self._tool_boundary = tool_boundary
 
-    async def stream(self, request: HarnessRequest) -> AsyncIterator[ModelEvent]:
+    async def stream(
+        self,
+        request: HarnessRequest,
+        *,
+        cancellation_signal: asyncio.Event | None = None,
+    ) -> AsyncIterator[ModelEvent]:
         model_request = assemble_model_request(request=request, policy=self._policy)
+        runtime_stream = self._runtime.stream_chat(model_request)
+        next_event: asyncio.Task[ModelEvent] | None = None
+        cancellation_wait: asyncio.Task[bool] | None = None
         try:
-            async for event in self._runtime.stream_chat(model_request):
+            while True:
+                try:
+                    if cancellation_signal is None:
+                        event = await anext(runtime_stream)
+                    else:
+                        next_event = asyncio.create_task(anext(runtime_stream))
+                        cancellation_wait = asyncio.create_task(
+                            cancellation_signal.wait()
+                        )
+                        await asyncio.wait(
+                            {next_event, cancellation_wait},
+                            return_when=asyncio.FIRST_COMPLETED,
+                        )
+                        if cancellation_wait.done() and cancellation_wait.result():
+                            await self._runtime.abort(request.request_id)
+                            if not next_event.done():
+                                next_event.cancel()
+                            with suppress(
+                                asyncio.CancelledError, StopAsyncIteration
+                            ):
+                                await next_event
+                            yield ModelStopped(request_id=request.request_id)
+                            return
+                        cancellation_wait.cancel()
+                        with suppress(asyncio.CancelledError):
+                            await cancellation_wait
+                        event = next_event.result()
+                        next_event = None
+                        cancellation_wait = None
+                except StopAsyncIteration:
+                    return
                 if isinstance(event, ModelToolRequest):
                     try:
                         self._tool_boundary.reject_model_tool_request(event)
@@ -94,3 +134,10 @@ class ApplicationHarness:
             yield ModelStopped(request_id=request.request_id)
         except ModelRuntimeError as error:
             yield ModelFailed(request_id=request.request_id, message=str(error))
+        finally:
+            for pending_task in (next_event, cancellation_wait):
+                if pending_task is not None and not pending_task.done():
+                    pending_task.cancel()
+                    with suppress(asyncio.CancelledError, StopAsyncIteration):
+                        await pending_task
+            await runtime_stream.aclose()

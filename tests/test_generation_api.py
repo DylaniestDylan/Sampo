@@ -67,6 +67,14 @@ def _parse_sse(body: str) -> list[tuple[str, dict[str, str]]]:
     return parsed
 
 
+async def _wait_until(predicate, *, attempts: int = 20) -> None:
+    for _ in range(attempts):
+        if predicate():
+            return
+        await asyncio.sleep(0)
+    raise AssertionError("condition did not become true")
+
+
 def test_post_generation_validates_prompt_and_returns_one_opaque_id() -> None:
     async def exercise():
         application = create_app(model_runtime=FakeModelRuntime())
@@ -158,7 +166,10 @@ def test_status_route_returns_bounded_summary_and_unknown_is_explicit() -> None:
         application = create_app(model_runtime=FakeModelRuntime())
         service = application.state.generation_service
         created = service.create_generation("Prompt")
-        await asyncio.sleep(0)
+        await _wait_until(
+            lambda: service.get_generation(created.generation_id).status
+            is GenerationStatus.COMPLETED
+        )
         transport = ASGITransport(app=application)
         async with AsyncClient(
             transport=transport, base_url="http://localhost"
@@ -177,6 +188,161 @@ def test_status_route_returns_bounded_summary_and_unknown_is_explicit() -> None:
     }
     assert unknown.status_code == 404
     assert unknown.json() == {"detail": "generation not found"}
+
+
+def test_cancel_route_rejects_unknown_generation() -> None:
+    async def exercise():
+        application = create_app(model_runtime=FakeModelRuntime())
+        transport = ASGITransport(app=application)
+        async with AsyncClient(
+            transport=transport, base_url="http://localhost"
+        ) as client:
+            return await client.post(
+                "/api/generations/not-known/cancel",
+                headers=_headers(application),
+            )
+
+    response = asyncio.run(exercise())
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "generation not found"}
+
+
+def test_cancel_route_enforces_host_origin_and_csrf_policy() -> None:
+    async def exercise():
+        gate = asyncio.Event()
+        application = create_app(
+            model_runtime=FakeModelRuntime(chunks=("blocked",), chunk_gate=gate)
+        )
+        service = application.state.generation_service
+        generation_ids = [
+            service.create_generation("Prompt").generation_id for _ in range(4)
+        ]
+        await asyncio.sleep(0)
+        transport = ASGITransport(app=application)
+        async with AsyncClient(
+            transport=transport, base_url="http://localhost"
+        ) as client:
+            bad_host = await client.post(
+                f"/api/generations/{generation_ids[0]}/cancel",
+                headers={
+                    "host": "unrelated.example",
+                    "origin": "http://unrelated.example",
+                    "x-csrf-token": application.state.csrf_token,
+                },
+            )
+            bad_origin = await client.post(
+                f"/api/generations/{generation_ids[1]}/cancel",
+                headers={
+                    "origin": "https://unrelated.example",
+                    "x-csrf-token": application.state.csrf_token,
+                },
+            )
+            bad_csrf = await client.post(
+                f"/api/generations/{generation_ids[2]}/cancel",
+                headers={
+                    "origin": "http://localhost",
+                    "x-csrf-token": "not-the-token",
+                },
+            )
+            accepted = await client.post(
+                f"/api/generations/{generation_ids[3]}/cancel",
+                headers=_headers(application),
+            )
+        for generation_id in generation_ids[:3]:
+            await service.cancel_generation(generation_id)
+        return bad_host, bad_origin, bad_csrf, accepted
+
+    bad_host, bad_origin, bad_csrf, accepted = asyncio.run(exercise())
+
+    assert bad_host.status_code == 400
+    assert bad_host.text == "Invalid host header"
+    assert bad_origin.status_code == 403
+    assert bad_origin.text == "Origin not allowed"
+    assert bad_csrf.status_code == 403
+    assert bad_csrf.text == "Invalid CSRF token"
+    assert accepted.status_code == 200
+    assert accepted.json()["status"] == "stopped"
+
+
+def test_api_cancellation_reaches_internal_runtime_request_and_stops_task() -> None:
+    async def exercise():
+        gate = asyncio.Event()
+        runtime = FakeModelRuntime(
+            chunks=("late runtime chunk",),
+            chunk_gate=gate,
+        )
+        application = create_app(model_runtime=runtime)
+        service = application.state.generation_service
+        transport = ASGITransport(app=application)
+        async with AsyncClient(
+            transport=transport, base_url="http://localhost"
+        ) as client:
+            created = await client.post(
+                "/api/generations",
+                json={"prompt": "Prompt"},
+                headers=_headers(application),
+            )
+            generation_id = created.json()["generation_id"]
+            await _wait_until(lambda: bool(runtime.stream_requests))
+            runtime_request_id = runtime.stream_requests[0].request_id
+            cancelled = await client.post(
+                f"/api/generations/{generation_id}/cancel",
+                headers=_headers(application),
+            )
+            repeated = await client.post(
+                f"/api/generations/{generation_id}/cancel",
+                headers=_headers(application),
+            )
+            status_response = await client.get(
+                f"/api/generations/{generation_id}"
+            )
+            streamed = await client.get(
+                f"/api/generations/{generation_id}/events",
+                headers={"origin": "http://localhost"},
+            )
+            await asyncio.sleep(0)
+            task_remains = generation_id in service._tasks
+        return (
+            generation_id,
+            runtime_request_id,
+            cancelled,
+            repeated,
+            status_response,
+            streamed,
+            runtime,
+            task_remains,
+        )
+
+    (
+        generation_id,
+        runtime_request_id,
+        cancelled,
+        repeated,
+        status_response,
+        streamed,
+        runtime,
+        task_remains,
+    ) = asyncio.run(exercise())
+    events = _parse_sse(streamed.text)
+
+    assert runtime_request_id != generation_id
+    assert runtime.abort_calls == (runtime_request_id,)
+    assert cancelled.status_code == repeated.status_code == 200
+    assert cancelled.json() == repeated.json() == status_response.json()
+    assert cancelled.json() == {
+        "generation_id": generation_id,
+        "status": "stopped",
+        "error": None,
+    }
+    assert events[-1][0] == "generation.stopped"
+    assert all(
+        event_name in {"generation.started", "generation.stopped"}
+        for event_name, _ in events
+    )
+    assert "late runtime chunk" not in streamed.text
+    assert "generation.completed" not in streamed.text
+    assert not task_remains
 
 
 def test_real_sse_route_streams_application_owned_events_to_terminal() -> None:
@@ -324,7 +490,10 @@ def test_slow_consumer_fails_generation_without_unbounded_backlog() -> None:
         registry = GenerationRegistry(event_buffer_capacity=2)
         service = _service(runtime, registry=registry)
         created = service.create_generation("Prompt")
-        await asyncio.sleep(0)
+        await _wait_until(
+            lambda: service.get_generation(created.generation_id).status
+            is GenerationStatus.FAILED
+        )
         state = service.get_generation(created.generation_id)
         buffer = registry.event_buffer(created.generation_id)
         events = [event async for event in service.stream_events(created.generation_id)]
@@ -346,7 +515,8 @@ def test_full_buffer_at_completion_is_reported_as_slow_consumer_failure() -> Non
         registry = GenerationRegistry(event_buffer_capacity=3)
         service = _service(runtime, registry=registry)
         created = service.create_generation("Prompt")
-        await asyncio.sleep(0)
+        task = service._tasks[created.generation_id]
+        await task
         state = service.get_generation(created.generation_id)
         events = [event async for event in service.stream_events(created.generation_id)]
         return state, events
@@ -388,7 +558,7 @@ def test_closing_real_sse_route_stops_still_active_ephemeral_generation() -> Non
     assert "event: generation.started" in first
     assert state is not None
     assert state.status is GenerationStatus.STOPPED
-    assert runtime.abort_calls == ()
+    assert runtime.abort_calls == (runtime.stream_requests[0].request_id,)
 
 
 def test_real_sse_route_enforces_host_and_origin_policy() -> None:

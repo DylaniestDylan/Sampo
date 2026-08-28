@@ -8,6 +8,7 @@ from app.model_runtime import (
     ModelDelta,
     ModelRequest,
     ModelStarted,
+    RuntimeCancelledError,
     RuntimeFailureError,
 )
 from tests.runtime_contract import ModelRuntimeContract
@@ -89,3 +90,22 @@ def test_fake_runtime_tracks_abort_calls() -> None:
     asyncio.run(runtime.abort("request-to-stop"))
 
     assert runtime.abort_calls == ("request-to-stop",)
+
+
+def test_fake_runtime_abort_releases_gate_without_emitting_a_late_chunk() -> None:
+    async def exercise_abort():
+        gate = asyncio.Event()
+        runtime = FakeModelRuntime(chunks=("must not escape",), chunk_gate=gate)
+        stream = runtime.stream_chat(make_request())
+        started = await anext(stream)
+        blocked = asyncio.create_task(anext(stream))
+        await asyncio.sleep(0)
+        await runtime.abort("fake-request")
+        with pytest.raises(RuntimeCancelledError):
+            await blocked
+        return runtime, started
+
+    runtime, started = asyncio.run(exercise_abort())
+
+    assert started == ModelStarted(request_id="fake-request")
+    assert runtime.abort_calls == ("fake-request",)

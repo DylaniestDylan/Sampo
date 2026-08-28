@@ -22,7 +22,7 @@ Refer to `docs/project/Architecture.md` for the authoritative product and securi
 
 See `docs/project/STATUS.md` for the authoritative current implementation state.
 
-The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn local web shell, process-only health endpoint, numeric-loopback-validated bind/runtime settings, local-web trust controls, application-owned runtime boundary, deterministic fake runtime, production `llama.cpp` adapter, minimal application-owned harness, bounded ephemeral generation lifecycle, generation status/API/SSE routes, and deterministic tests are available. The production startup path composes the adapter, harness, and backend generation service. Browser prompt/stream controls and the user cancellation endpoint are not yet available.
+The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn local web shell, process-only health endpoint, numeric-loopback-validated bind/runtime settings, local-web trust controls, application-owned runtime boundary, deterministic fake runtime, production `llama.cpp` adapter, minimal application-owned harness, bounded ephemeral generation lifecycle, generation status/API/SSE/cancellation routes, and deterministic tests are available. The production startup path composes the adapter, harness, and backend generation service. Browser prompt/stream controls are not yet available.
 
 ## Prerequisites
 
@@ -87,7 +87,7 @@ When P01.17 verifies a working local `llama.cpp` runtime path, document here:
 
 ## Running Automated Tests
 
-The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, mocked `llama.cpp` adapter, application-owned harness, model-tool capability-boundary, generation-lifecycle, and generation-API/SSE tests. It does not require a model runtime or internet access once dependencies are installed.
+The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, mocked `llama.cpp` adapter, application-owned harness, model-tool capability-boundary, generation-lifecycle, and generation-API/SSE/cancellation tests. It does not require a model runtime or internet access once dependencies are installed.
 
 Run the focused startup-composition test with:
 
@@ -131,7 +131,7 @@ Run the complete current suite with:
 .venv/bin/python -m pytest
 ```
 
-The startup-focused command reports one passing test, the adapter-focused command reports 24 passing tests, the tool-boundary-focused command reports 13 passing tests, the harness-focused command reports 19 passing tests, the lifecycle-focused command reports 13 passing tests, the generation-API/SSE-focused command reports 14 passing cases, and the complete suite reports 161. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
+The startup-focused command reports one passing test, the adapter-focused command reports 24 passing tests, the tool-boundary-focused command reports 13 passing tests, the harness-focused command reports 20 passing tests, the lifecycle-focused command reports 13 passing tests, the generation-API/SSE/cancellation-focused command reports 17 passing cases, and the complete suite reports 166. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
 
 
 ## Real `llama.cpp` Smoke Test

@@ -35,7 +35,7 @@ class UnknownGenerationError(LookupError):
 class GenerationService:
     """Backend-owned composition of ephemeral lifecycle and harness execution."""
 
-    __slots__ = ("_harness", "_registry", "_tasks")
+    __slots__ = ("_cancellation_signals", "_harness", "_registry", "_tasks")
 
     def __init__(
         self,
@@ -45,6 +45,7 @@ class GenerationService:
     ) -> None:
         self._harness = harness
         self._registry = registry or GenerationRegistry()
+        self._cancellation_signals: dict[str, asyncio.Event] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
 
     def create_generation(self, prompt: str) -> GenerationState:
@@ -54,11 +55,14 @@ class GenerationService:
         runtime_request_id = self._registry.runtime_request_id(state.generation_id)
         if runtime_request_id is None:
             raise RuntimeError("generation runtime request ID is unavailable")
+        cancellation_signal = asyncio.Event()
+        self._cancellation_signals[state.generation_id] = cancellation_signal
         task = asyncio.create_task(
             self._run_generation(
                 generation_id=state.generation_id,
                 runtime_request_id=runtime_request_id,
                 prompt=prompt,
+                cancellation_signal=cancellation_signal,
             )
         )
         self._tasks[state.generation_id] = task
@@ -70,6 +74,20 @@ class GenerationService:
         return state
 
     def get_generation(self, generation_id: str) -> GenerationState | None:
+        return self._registry.get(generation_id)
+
+    async def cancel_generation(
+        self, generation_id: str
+    ) -> GenerationState | None:
+        state = self._registry.get(generation_id)
+        if state is None or state.status in TERMINAL_GENERATION_STATUSES:
+            return state
+        cancellation_signal = self._cancellation_signals.get(generation_id)
+        task = self._tasks.get(generation_id)
+        if cancellation_signal is None or task is None:
+            raise RuntimeError("active generation cancellation state is unavailable")
+        cancellation_signal.set()
+        await task
         return self._registry.get(generation_id)
 
     def stream_events(self, generation_id: str) -> AsyncIterator[GenerationEvent]:
@@ -104,6 +122,7 @@ class GenerationService:
         generation_id: str,
         runtime_request_id: str,
         prompt: str,
+        cancellation_signal: asyncio.Event,
     ) -> None:
         try:
             self._registry.transition(
@@ -114,8 +133,13 @@ class GenerationService:
                 HarnessRequest(
                     request_id=runtime_request_id,
                     user_prompt=prompt,
-                )
+                ),
+                cancellation_signal=cancellation_signal,
             ):
+                if cancellation_signal.is_set() and not isinstance(
+                    model_event, (ModelStopped, ModelFailed)
+                ):
+                    continue
                 if isinstance(model_event, ModelStarted):
                     if not self._publish(
                         generation_id,
@@ -158,7 +182,14 @@ class GenerationService:
                         error=error,
                     )
                     return
-            self._fail(generation_id, INTERNAL_GENERATION_ERROR)
+            if cancellation_signal.is_set():
+                self._finish_if_active(
+                    generation_id,
+                    status=GenerationStatus.STOPPED,
+                    event=GenerationEvent(name=GenerationEventName.STOPPED),
+                )
+            else:
+                self._fail(generation_id, INTERNAL_GENERATION_ERROR)
         except asyncio.CancelledError:
             self._finish_if_active(
                 generation_id,
@@ -242,25 +273,14 @@ class GenerationService:
             event_buffer.replace_with(event)
 
     async def _stop_disconnected_generation(self, generation_id: str) -> None:
-        task = self._tasks.get(generation_id)
-        if task is None or task.done():
-            return
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
-        self._finish_if_active(
-            generation_id,
-            status=GenerationStatus.STOPPED,
-            event=GenerationEvent(name=GenerationEventName.STOPPED),
-        )
+        await self.cancel_generation(generation_id)
 
     def _forget_task(
         self, generation_id: str, completed_task: asyncio.Task[None]
     ) -> None:
         if self._tasks.get(generation_id) is completed_task:
             self._tasks.pop(generation_id, None)
+            self._cancellation_signals.pop(generation_id, None)
 
     @staticmethod
     def _bounded_text_parts(text: str) -> tuple[str, ...]:

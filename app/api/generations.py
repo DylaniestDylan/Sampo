@@ -85,6 +85,20 @@ async def generation_status(
     return _status_response(state)
 
 
+@router.post(
+    "/{generation_id}/cancel",
+    response_model=GenerationStatusResponse,
+)
+async def cancel_generation(
+    generation_id: str,
+    request: Request,
+) -> GenerationStatusResponse:
+    state = await _service(request).cancel_generation(generation_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail="generation not found")
+    return _status_response(state)
+
+
 @router.get("/{generation_id}/events")
 async def generation_events(
     generation_id: str,
