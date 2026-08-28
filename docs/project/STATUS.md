@@ -41,7 +41,7 @@ A minimal FastAPI application factory and `GET /health` route exist. The route r
 
 Application-owned `RuntimeCapabilities`, `ModelRequest`, normalized started/delta/completed/stopped/failed event values, and a bounded runtime error taxonomy exist without `llama.cpp` transport fields. The `ModelRuntime` protocol defines capability probing, streaming, and abort; runtime injection is application-composition state rather than global transport state. `FakeModelRuntime` provides deterministic chunks, an event gate, known-failure injection, and abort-call tracking, and passes the reusable runtime contract tests. A typed `ApplicationSettings` object defaults `bind_host` to `127.0.0.1`, requires an explicit bind port, accepts numeric loopback addresses, and rejects wildcard, LAN/public, and hostname bind values. Running `python -m app` starts the local shell on `127.0.0.1:8000`; no prompt-generation UI or end-user model behavior exists yet.
 
-`LlamaCppModelRuntime` is the only production model adapter. It uses an adapter-internal HTTPX transport for the local `llama.cpp` health and OpenAI-compatible streaming-chat endpoints, translates only between transport-private payload/chunk shapes and application-owned runtime values, maps expected transport failures into the Phase 1 runtime error taxonomy, and aborts active transport responses by Sampo request ID. Both application settings and direct adapter construction reject non-numeric, non-loopback, credential-bearing, path-bearing, and remote/cloud runtime endpoints. HTTPX environment proxy settings are disabled for adapter calls, and failures do not retry or select another model/provider. This adapter is not yet wired into a harness, generation lifecycle, API, or browser flow; those remain later Phase 1 work.
+`LlamaCppModelRuntime` is the only production model adapter. It uses an adapter-internal HTTPX transport for the local `llama.cpp` health and OpenAI-compatible streaming-chat endpoints, translates only between transport-private payload/chunk shapes and application-owned runtime values, validates the nested streamed-response shapes before accessing them, maps expected transport and malformed-protocol failures into the Phase 1 runtime error taxonomy, and aborts active transport responses by Sampo request ID. Both application settings and direct adapter construction reject non-numeric, non-loopback, credential-bearing, path-bearing, and remote/cloud runtime endpoints. HTTPX environment proxy settings are disabled for adapter calls, and failures do not retry or select another model/provider. This adapter is not yet wired into a harness, generation lifecycle, API, or browser flow; those remain later Phase 1 work.
 
 ## What Does Not Exist Yet
 
@@ -60,7 +60,7 @@ Later-phase features are intentionally absent and should remain absent until the
 
 ## Current Verification
 
-The local API/web shell is runnable. The automated suite contains 100 deterministic foundation, web-shell, trust-perimeter, runtime-domain, runtime-contract, mocked-runtime-adapter, health-route, settings, and startup test cases.
+The local API/web shell is runnable. The automated suite contains 101 deterministic foundation, web-shell, trust-perimeter, runtime-domain, runtime-contract, mocked-runtime-adapter, health-route, settings, and startup test cases.
 
 The initial `pyproject.toml` metadata has been checked with TOML-aware IDE inspection and `git diff --check`.
 
@@ -72,7 +72,7 @@ The root ignore policy has been checked against representative local environment
 
 The P01.03 web-foundation checkpoint passed **14 tests**. The P01.04 trust-perimeter checkpoint passed **39 tests**. The focused P01.05–P01.07 runtime checks passed **27 tests**, and the complete deterministic suite passed **66 tests** with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1. The current real local startup path was exercised: Uvicorn bound to `127.0.0.1:8000`, `GET /` returned the Jinja2 shell with HTTP 200 and local asset references, and the process shut down cleanly. The process-only `GET /health` path remains covered by deterministic API tests. The verified environment-setup, run, health-check, and test commands are recorded in `docs/project/DEVELOPMENT.md`.
 
-The P01.08 adapter checkpoint passed **22 focused mocked-transport tests** covering the reusable runtime contract, capability probing, adapter-internal request/stream translation, malformed streams, HTTP failure, disconnect, cancellation, direct remote-endpoint rejection, and no fallback/model substitution. The complete deterministic offline suite passed **100 tests** with the existing verified environment. No real `llama.cpp` process was required or used; the opt-in real-runtime proof remains P01.17.
+The repaired P01.08 adapter checkpoint passed **23 focused mocked-transport tests** covering the reusable runtime contract, capability probing, adapter-internal request/stream translation, malformed streams including a non-object nested `delta`, HTTP failure, disconnect, cancellation, direct remote-endpoint rejection, and no fallback/model substitution. The complete deterministic offline suite passed **101 tests** with the existing verified environment. No real `llama.cpp` process was required or used; the opt-in real-runtime proof remains P01.17.
 
 ## Status Update Rules
 

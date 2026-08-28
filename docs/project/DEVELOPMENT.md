@@ -107,7 +107,7 @@ Run the complete current suite with:
 .venv/bin/python -m pytest
 ```
 
-The startup-focused command reports one passing test, the adapter-focused command reports 22 passing tests, and the complete suite reports 100. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
+The startup-focused command reports one passing test, the adapter-focused command reports 23 passing tests, and the complete suite reports 101. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
 
 
 ## Real `llama.cpp` Smoke Test

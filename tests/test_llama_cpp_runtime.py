@@ -264,6 +264,26 @@ def test_llama_cpp_runtime_rejects_malformed_stream(
         asyncio.run(collect_events())
 
 
+def test_llama_cpp_runtime_normalizes_non_object_delta_as_runtime_failure() -> None:
+    async def collect_events():
+        runtime = make_runtime(
+            MockLlamaCppTransport(
+                lines=('data: {"choices":[{"delta":null}]}',)
+            )
+        )
+        request = ModelRequest(
+            request_id="malformed-delta-request",
+            system_text="Trusted application policy",
+            user_text="User prompt",
+        )
+        return [event async for event in runtime.stream_chat(request)]
+
+    with pytest.raises(RuntimeFailureError, match="malformed") as raised:
+        asyncio.run(collect_events())
+
+    assert raised.value.code.value == "runtime_failure"
+
+
 def test_llama_cpp_runtime_normalizes_mid_stream_disconnect() -> None:
     async def exercise_disconnect():
         runtime = make_runtime(

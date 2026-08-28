@@ -186,8 +186,18 @@ class LlamaCppModelRuntime:
                         break
                     try:
                         chunk = json.loads(data)
-                        choices = chunk["choices"]
-                        delta = choices[0]["delta"]
+                        if not isinstance(chunk, dict):
+                            raise TypeError
+                        choices = chunk.get("choices")
+                        if (
+                            not isinstance(choices, list)
+                            or not choices
+                            or not isinstance(choices[0], dict)
+                        ):
+                            raise TypeError
+                        delta = choices[0].get("delta")
+                        if not isinstance(delta, dict):
+                            raise TypeError
                         content = delta.get("content")
                     except (
                         json.JSONDecodeError,
