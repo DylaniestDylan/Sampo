@@ -1,10 +1,19 @@
 import asyncio
+from dataclasses import fields
 from inspect import signature
 
 import pytest
 
+from app.harness import (
+    HarnessToolBoundary,
+    ToolRegistry,
+    UnexpectedModelToolRequestError,
+)
 from app.model_runtime import (
     LlamaCppModelRuntime,
+    ModelCompleted,
+    ModelStarted,
+    ModelToolRequest,
     RuntimeCapabilities,
     RuntimeCancelledError,
     RuntimeConfigurationError,
@@ -184,6 +193,39 @@ def test_llama_cpp_runtime_translates_stream_to_application_events() -> None:
         None,
     ]
     assert transport.stream_calls[0][0] == "sampo-request-1"
+
+
+def test_llama_cpp_runtime_preserves_structured_tool_request_without_completion() -> None:
+    async def collect_events():
+        runtime = make_runtime(
+            MockLlamaCppTransport(
+                lines=(
+                    'data: {"choices":[{"delta":{"tool_calls":[{"id":"call-1",'
+                    '"function":{"name":"filesystem.read",'
+                    '"arguments":"unbounded model arguments"}}]}}]}',
+                    "data: [DONE]",
+                )
+            )
+        )
+        request = ModelRequest(
+            request_id="unexpected-tool-request",
+            system_text="Trusted application policy",
+            user_text="User prompt",
+        )
+        return [event async for event in runtime.stream_chat(request)]
+
+    events = asyncio.run(collect_events())
+
+    assert [type(event) for event in events] == [ModelStarted, ModelToolRequest]
+    assert events[-1] == ModelToolRequest(request_id="unexpected-tool-request")
+    assert not any(isinstance(event, ModelCompleted) for event in events)
+    assert {field.name for field in fields(events[-1])} == {"request_id"}
+    with pytest.raises(UnexpectedModelToolRequestError) as raised:
+        HarnessToolBoundary(registry=ToolRegistry()).reject_model_tool_request(
+            events[-1]
+        )
+    assert raised.value.code == "unsupported_model_tool_request"
+    assert str(raised.value) == "model tool requests are unsupported"
 
 
 def test_llama_cpp_runtime_aborts_by_sampo_request_id() -> None:

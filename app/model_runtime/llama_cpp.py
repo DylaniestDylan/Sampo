@@ -12,7 +12,13 @@ from app.model_runtime.errors import (
     RuntimeFailureError,
     RuntimeUnavailableError,
 )
-from app.model_runtime.events import ModelCompleted, ModelDelta, ModelEvent, ModelStarted
+from app.model_runtime.events import (
+    ModelCompleted,
+    ModelDelta,
+    ModelEvent,
+    ModelStarted,
+    ModelToolRequest,
+)
 from app.model_runtime.request import ModelRequest
 
 
@@ -198,6 +204,15 @@ class LlamaCppModelRuntime:
                         delta = choices[0].get("delta")
                         if not isinstance(delta, dict):
                             raise TypeError
+                        tool_calls = delta.get("tool_calls")
+                        if tool_calls is not None and (
+                            not isinstance(tool_calls, list)
+                            or not all(
+                                isinstance(tool_call, dict)
+                                for tool_call in tool_calls
+                            )
+                        ):
+                            raise TypeError
                         content = delta.get("content")
                     except (
                         json.JSONDecodeError,
@@ -208,6 +223,9 @@ class LlamaCppModelRuntime:
                         raise RuntimeFailureError(
                             "llama.cpp returned a malformed stream"
                         ) from error
+                    if tool_calls:
+                        yield ModelToolRequest(request_id=request_id)
+                        return
                     if content is not None:
                         if not isinstance(content, str) or not content:
                             raise RuntimeFailureError(

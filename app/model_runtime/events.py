@@ -26,6 +26,14 @@ class ModelDelta:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class ModelToolRequest:
+    request_id: str
+
+    def __post_init__(self) -> None:
+        _require_non_blank(self.request_id, "request_id")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ModelCompleted:
     request_id: str
 
@@ -52,5 +60,10 @@ class ModelFailed:
 
 
 type ModelEvent = (
-    ModelStarted | ModelDelta | ModelCompleted | ModelStopped | ModelFailed
+    ModelStarted
+    | ModelDelta
+    | ModelToolRequest
+    | ModelCompleted
+    | ModelStopped
+    | ModelFailed
 )

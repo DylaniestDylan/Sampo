@@ -6,6 +6,7 @@ from app.model_runtime.events import (
     ModelFailed,
     ModelStarted,
     ModelStopped,
+    ModelToolRequest,
 )
 from app.model_runtime.fake import FakeModelRuntime
 from app.model_runtime.errors import (
@@ -34,6 +35,7 @@ __all__ = [
     "ModelRuntimeError",
     "ModelStarted",
     "ModelStopped",
+    "ModelToolRequest",
     "RuntimeCancelledError",
     "RuntimeCapabilityError",
     "RuntimeCapabilities",

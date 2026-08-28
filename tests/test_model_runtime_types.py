@@ -10,6 +10,7 @@ from app.model_runtime import (
     ModelRuntimeError,
     ModelStarted,
     ModelStopped,
+    ModelToolRequest,
     RuntimeCancelledError,
     RuntimeCapabilityError,
     RuntimeCapabilities,
@@ -67,6 +68,7 @@ def test_application_owned_model_event_vocabulary() -> None:
     events = (
         ModelStarted(request_id="request-1"),
         ModelDelta(request_id="request-1", text="Hello"),
+        ModelToolRequest(request_id="request-1"),
         ModelCompleted(request_id="request-1"),
         ModelStopped(request_id="request-2"),
         ModelFailed(request_id="request-3", message="runtime failed"),
@@ -75,6 +77,7 @@ def test_application_owned_model_event_vocabulary() -> None:
     assert tuple(type(event).__name__ for event in events) == (
         "ModelStarted",
         "ModelDelta",
+        "ModelToolRequest",
         "ModelCompleted",
         "ModelStopped",
         "ModelFailed",

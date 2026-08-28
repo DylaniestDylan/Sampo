@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Never
 
+from app.model_runtime.events import ModelToolRequest
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ModelToolDescription:
@@ -30,5 +32,5 @@ class HarnessToolBoundary:
     def model_tool_descriptions(self) -> tuple[ModelToolDescription, ...]:
         return self._registry.model_tool_descriptions()
 
-    def reject_model_tool_request(self, requested_name: str) -> Never:
+    def reject_model_tool_request(self, request: ModelToolRequest) -> Never:
         raise UnexpectedModelToolRequestError

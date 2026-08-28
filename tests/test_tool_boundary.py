@@ -5,6 +5,7 @@ from app.harness import (
     ToolRegistry,
     UnexpectedModelToolRequestError,
 )
+from app.model_runtime import ModelToolRequest
 
 
 FORBIDDEN_CAPABILITY_IDENTIFIERS = (
@@ -37,7 +38,9 @@ def test_unexpected_model_tool_request_fails_closed() -> None:
     boundary = HarnessToolBoundary(registry=ToolRegistry())
 
     with pytest.raises(UnexpectedModelToolRequestError) as raised:
-        boundary.reject_model_tool_request("filesystem.read")
+        boundary.reject_model_tool_request(
+            ModelToolRequest(request_id="request-1")
+        )
 
     assert raised.value.code == "unsupported_model_tool_request"
     assert str(raised.value) == "model tool requests are unsupported"
