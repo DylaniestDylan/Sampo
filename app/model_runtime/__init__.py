@@ -19,10 +19,12 @@ from app.model_runtime.errors import (
 )
 from app.model_runtime.request import ModelRequest
 from app.model_runtime.runtime import ModelRuntime
+from app.model_runtime.llama_cpp import LlamaCppModelRuntime
 
 
 __all__ = [
     "FakeModelRuntime",
+    "LlamaCppModelRuntime",
     "ModelCompleted",
     "ModelDelta",
     "ModelEvent",

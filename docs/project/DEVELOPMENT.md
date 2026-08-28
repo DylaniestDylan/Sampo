@@ -22,7 +22,7 @@ Refer to `docs/project/Architecture.md` for the authoritative product and securi
 
 See `docs/project/STATUS.md` for the authoritative current implementation state.
 
-The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn local web shell, process-only health endpoint, numeric-loopback-validated bind settings, local-web trust controls, application-owned runtime boundary, deterministic fake runtime, and deterministic tests are available. There is no prompt-generation UI or `llama.cpp` integration yet.
+The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn local web shell, process-only health endpoint, numeric-loopback-validated bind/runtime settings, local-web trust controls, application-owned runtime boundary, deterministic fake runtime, production `llama.cpp` adapter, and deterministic tests are available. The adapter is not yet connected to a harness, generation API, or browser UI.
 
 ## Prerequisites
 
@@ -31,9 +31,9 @@ The current verified development environment uses:
 - Python 3.14.7, matching the minimum declared in `pyproject.toml`;
 - pip 26.0.1;
 - FastAPI 0.141.1 from the production dependency list;
+- HTTPX 0.28.1 from the production dependency list;
 - Jinja2 3.1.6 from the production dependency list;
 - Uvicorn 0.52.4 from the production dependency list;
-- HTTPX 0.28.1 from the `test` dependency group;
 - pytest 9.1.1 from the `test` dependency group.
 
 Commands below assume a Linux shell and are run from the repository root.
@@ -45,6 +45,7 @@ Create a project-local virtual environment and install the current production an
 ```bash
 python3.14 -m venv .venv
 .venv/bin/python -m pip install "fastapi>=0.141,<0.142"
+.venv/bin/python -m pip install "httpx>=0.28.1,<0.29"
 .venv/bin/python -m pip install "jinja2>=3.1,<4"
 .venv/bin/python -m pip install "uvicorn>=0.52,<0.53"
 .venv/bin/python -m pip install --group test
@@ -71,9 +72,11 @@ The expected response is `{"status":"ok"}`. This reports only the Sampo process;
 
 ## Running the Local Model Runtime
 
-**Current status:** Not integrated yet.
+**Current status:** The production adapter is implemented and deterministically tested, but the real-runtime launch/smoke path is intentionally deferred to P01.17.
 
-When the active phase provides a working local `llama.cpp` runtime path, document here:
+The implemented backend configuration defaults to `http://127.0.0.1:8080` and model identity `local-model`. Runtime endpoints must use an explicit numeric loopback address and port; hostname, LAN, public, credential-bearing, and path-bearing URLs are rejected. No environment proxy or remote/cloud fallback is used.
+
+When P01.17 verifies a working local `llama.cpp` runtime path, document here:
 
 - the supported local runtime mode;
 - the exact local startup/configuration procedure used by Sampo;
@@ -84,12 +87,18 @@ When the active phase provides a working local `llama.cpp` runtime path, documen
 
 ## Running Automated Tests
 
-The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, and fake-runtime tests. It does not require a model runtime or internet access once dependencies are installed.
+The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, and mocked `llama.cpp` adapter tests. It does not require a model runtime or internet access once dependencies are installed.
 
 Run the focused startup-composition test with:
 
 ```bash
 .venv/bin/python -m pytest tests/test_startup.py
+```
+
+Run the focused `llama.cpp` adapter tests with:
+
+```bash
+.venv/bin/python -m pytest tests/test_llama_cpp_runtime.py
 ```
 
 Run the complete current suite with:
@@ -98,7 +107,7 @@ Run the complete current suite with:
 .venv/bin/python -m pytest
 ```
 
-Both commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1. The focused command reports one passing test; the complete suite reports 66.
+The startup-focused command reports one passing test, the adapter-focused command reports 22 passing tests, and the complete suite reports 100. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
 
 
 ## Real `llama.cpp` Smoke Test

@@ -459,15 +459,15 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.08 — First `llama.cpp` adapter
 
-- [ ] **P01.08.01 — Add Phase 1 runtime endpoint/model configuration.** Keep it backend-only.
-- [ ] **P01.08.02 — Validate that configured runtime transport is same-machine/loopback only.** Reject remote hosts explicitly.
-- [ ] **P01.08.03 — Implement runtime availability/capability probing through the adapter.** Normalize results into `RuntimeCapabilities`.
-- [ ] **P01.08.04 — Implement request translation from `ModelRequest` to the selected `llama.cpp` transport.** Keep translation inside the adapter.
-- [ ] **P01.08.05 — Implement streamed response translation into `ModelEvent` values.** Do not leak transport-specific chunks upward.
-- [ ] **P01.08.06 — Implement adapter abort/cancellation.** Tie cancellation to the Sampo request ID.
-- [ ] **P01.08.07 — Normalize runtime connection/HTTP/protocol errors into the Phase 1 error taxonomy.**
-- [ ] **P01.08.08 — Add mocked-transport tests for success, malformed stream, disconnect, and cancellation.**
-- [ ] **P01.08.09 — Add a test proving no remote/cloud fallback occurs after adapter failure.**
+- [x] **P01.08.01 — Add Phase 1 runtime endpoint/model configuration.** Keep it backend-only.
+- [x] **P01.08.02 — Validate that configured runtime transport is same-machine/loopback only.** Reject remote hosts explicitly.
+- [x] **P01.08.03 — Implement runtime availability/capability probing through the adapter.** Normalize results into `RuntimeCapabilities`.
+- [x] **P01.08.04 — Implement request translation from `ModelRequest` to the selected `llama.cpp` transport.** Keep translation inside the adapter.
+- [x] **P01.08.05 — Implement streamed response translation into `ModelEvent` values.** Do not leak transport-specific chunks upward.
+- [x] **P01.08.06 — Implement adapter abort/cancellation.** Tie cancellation to the Sampo request ID.
+- [x] **P01.08.07 — Normalize runtime connection/HTTP/protocol errors into the Phase 1 error taxonomy.**
+- [x] **P01.08.08 — Add mocked-transport tests for success, malformed stream, disconnect, and cancellation.**
+- [x] **P01.08.09 — Add a test proving no remote/cloud fallback occurs after adapter failure.**
 
 **Review checkpoint:** `llama.cpp` is isolated behind one production adapter and failures remain explicit.
 

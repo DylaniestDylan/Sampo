@@ -14,7 +14,7 @@ The documentation authority model is defined in `docs/project/Architecture.md` �
 **Current roadmap phase:** Phase 1 — Workspace Foundation and Local Harness.  
 **Active phase contract:** `docs/project/implementation/Phase-01-Workspace-Foundation-and-Local-Harness.md`  
 **Phase contract status:** Approved and active.  
-**Phase 1 implementation status:** P01.01–P01.03, P01.04.01–P01.04.05, and P01.05–P01.07 complete. Initial middleware coverage for P01.04.06 exists; that checkbox remains open until the real SSE route is tested at P01.12. P01.08.01 is the next executable task.
+**Phase 1 implementation status:** P01.01–P01.03, P01.04.01–P01.04.05, and P01.05–P01.08 complete. Initial middleware coverage for P01.04.06 exists; that checkbox remains open until the real SSE route is tested at P01.12. P01.09.01 is the next executable task.
 **Runnable application:** Yes — local API and sparse local web shell.
 **Usable end-user functionality:** None yet.
 
@@ -26,9 +26,9 @@ The project now contains its planning/development-governance documentation and i
 
 - `AGENTS.md` — repository-level development-agent instructions.
 - `.gitignore` — excludes local environments, caches, secrets, databases, model files, logs, build output, and editor/OS artifacts.
-- `pyproject.toml` — project metadata, bounded FastAPI/Jinja2/Uvicorn production dependencies, a separate HTTPX/pytest test dependency group, and pytest discovery configuration.
-- `app/` — importable Python package with Phase 1 responsibility-boundary packages, a backend-owned FastAPI application factory, a process-only health route, a sparse Jinja2 web shell, local CSS and Alpine.js assets, local-web trust middleware, application-owned runtime types/protocol, a deterministic fake runtime, validated loopback bind settings, and a runnable module entry point.
-- `tests/` — deterministic package-import, application-factory, health-route, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, and fake-runtime tests.
+- `pyproject.toml` — project metadata, bounded FastAPI/HTTPX/Jinja2/Uvicorn production dependencies, a separate pytest test dependency group, and pytest discovery configuration.
+- `app/` — importable Python package with Phase 1 responsibility-boundary packages, a backend-owned FastAPI application factory, a process-only health route, a sparse Jinja2 web shell, local CSS and Alpine.js assets, local-web trust middleware, application-owned runtime types/protocol, a deterministic fake runtime, a production `llama.cpp` adapter, validated loopback application/runtime settings, and a runnable module entry point.
+- `tests/` — deterministic package-import, application-factory, health-route, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, and mocked `llama.cpp` adapter tests.
 - `docs/project/Architecture.md` — product architecture and roadmap.
 - `docs/project/STATUS.md` — implementation-state record.
 - `docs/project/DEVELOPMENT.md` — canonical operational guide.
@@ -41,13 +41,15 @@ A minimal FastAPI application factory and `GET /health` route exist. The route r
 
 Application-owned `RuntimeCapabilities`, `ModelRequest`, normalized started/delta/completed/stopped/failed event values, and a bounded runtime error taxonomy exist without `llama.cpp` transport fields. The `ModelRuntime` protocol defines capability probing, streaming, and abort; runtime injection is application-composition state rather than global transport state. `FakeModelRuntime` provides deterministic chunks, an event gate, known-failure injection, and abort-call tracking, and passes the reusable runtime contract tests. A typed `ApplicationSettings` object defaults `bind_host` to `127.0.0.1`, requires an explicit bind port, accepts numeric loopback addresses, and rejects wildcard, LAN/public, and hostname bind values. Running `python -m app` starts the local shell on `127.0.0.1:8000`; no prompt-generation UI or end-user model behavior exists yet.
 
+`LlamaCppModelRuntime` is the only production model adapter. It uses an adapter-internal HTTPX transport for the local `llama.cpp` health and OpenAI-compatible streaming-chat endpoints, translates only between transport-private payload/chunk shapes and application-owned runtime values, maps expected transport failures into the Phase 1 runtime error taxonomy, and aborts active transport responses by Sampo request ID. Both application settings and direct adapter construction reject non-numeric, non-loopback, credential-bearing, path-bearing, and remote/cloud runtime endpoints. HTTPX environment proxy settings are disabled for adapter calls, and failures do not retry or select another model/provider. This adapter is not yet wired into a harness, generation lifecycle, API, or browser flow; those remain later Phase 1 work.
+
 ## What Does Not Exist Yet
 
 The following are **not implemented** yet:
 
 - application-owned harness implementation;
-- `llama.cpp` adapter/integration;
-- generation streaming or cancellation;
+- harness/API/browser integration of the `llama.cpp` adapter;
+- end-to-end generation lifecycle/API streaming or cancellation;
 - model-callable tool registry;
 - real-runtime smoke test;
 - SQLite database or durable persistence;
@@ -58,7 +60,7 @@ Later-phase features are intentionally absent and should remain absent until the
 
 ## Current Verification
 
-The local API/web shell is runnable. The automated suite contains 66 deterministic foundation, web-shell, trust-perimeter, runtime-domain, runtime-contract, health-route, settings, and startup test cases.
+The local API/web shell is runnable. The automated suite contains 100 deterministic foundation, web-shell, trust-perimeter, runtime-domain, runtime-contract, mocked-runtime-adapter, health-route, settings, and startup test cases.
 
 The initial `pyproject.toml` metadata has been checked with TOML-aware IDE inspection and `git diff --check`.
 
@@ -69,6 +71,8 @@ The project-local PyCharm interpreter has been verified as Python 3.14.7 with `p
 The root ignore policy has been checked against representative local environment, cache, secret, database, model, log, and editor artifacts while preserving project source files.
 
 The P01.03 web-foundation checkpoint passed **14 tests**. The P01.04 trust-perimeter checkpoint passed **39 tests**. The focused P01.05–P01.07 runtime checks passed **27 tests**, and the complete deterministic suite passed **66 tests** with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1. The current real local startup path was exercised: Uvicorn bound to `127.0.0.1:8000`, `GET /` returned the Jinja2 shell with HTTP 200 and local asset references, and the process shut down cleanly. The process-only `GET /health` path remains covered by deterministic API tests. The verified environment-setup, run, health-check, and test commands are recorded in `docs/project/DEVELOPMENT.md`.
+
+The P01.08 adapter checkpoint passed **22 focused mocked-transport tests** covering the reusable runtime contract, capability probing, adapter-internal request/stream translation, malformed streams, HTTP failure, disconnect, cancellation, direct remote-endpoint rejection, and no fallback/model substitution. The complete deterministic offline suite passed **100 tests** with the existing verified environment. No real `llama.cpp` process was required or used; the opt-in real-runtime proof remains P01.17.
 
 ## Status Update Rules
 
