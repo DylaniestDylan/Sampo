@@ -417,7 +417,7 @@ A task is complete only when its focused tests pass and the reviewer can explain
 - [x] **P01.04.03 — Add an application-issued CSRF token to the rendered page.** Token is backend-owned and never model-facing.
 - [x] **P01.04.04 — Add CSRF validation for state-changing `/api/*` requests.** Test missing/invalid/valid token cases.
 - [x] **P01.04.05 — Confirm no permissive CORS middleware/configuration exists.** Add a regression test for unrelated origins.
-- [ ] **P01.04.06 — Apply the same host/origin policy to SSE endpoints.** Add a focused streaming-origin test once the test endpoint exists; this checkbox may initially land as middleware coverage and be closed after P01.12.
+- [x] **P01.04.06 — Apply the same host/origin policy to SSE endpoints.** Add a focused streaming-origin test once the test endpoint exists; this checkbox may initially land as middleware coverage and be closed after P01.12.
 
 **Review checkpoint:** an unrelated web origin cannot freely drive Sampo's browser-facing control plane.
 
@@ -501,13 +501,13 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.11 — Ephemeral generation lifecycle
 
-- [ ] **P01.11.01 — Add a `GenerationState` model with explicit lifecycle statuses.**
-- [ ] **P01.11.02 — Add an in-memory generation registry owned by the backend/workspace layer, not the harness.**
-- [ ] **P01.11.03 — Generate opaque application-owned generation IDs.** Runtime IDs must not become browser capabilities directly.
-- [ ] **P01.11.04 — Enforce valid lifecycle transitions.** Prevent terminal states from returning to streaming.
-- [ ] **P01.11.05 — Store only bounded Phase 1 ephemeral status/error data.** Do not accidentally create a durable conversation model.
-- [ ] **P01.11.06 — Add a bounded in-memory event channel/buffer for each active generation.** Define explicit behavior when the consumer cannot keep up; do not permit unbounded output accumulation.
-- [ ] **P01.11.07 — Add lifecycle transition tests for completion, stop, and failure.**
+- [x] **P01.11.01 — Add a `GenerationState` model with explicit lifecycle statuses.**
+- [x] **P01.11.02 — Add an in-memory generation registry owned by the backend/workspace layer, not the harness.**
+- [x] **P01.11.03 — Generate opaque application-owned generation IDs.** Runtime IDs must not become browser capabilities directly.
+- [x] **P01.11.04 — Enforce valid lifecycle transitions.** Prevent terminal states from returning to streaming.
+- [x] **P01.11.05 — Store only bounded Phase 1 ephemeral status/error data.** Do not accidentally create a durable conversation model.
+- [x] **P01.11.06 — Add a bounded in-memory event channel/buffer for each active generation.** Define explicit behavior when the consumer cannot keep up; do not permit unbounded output accumulation.
+- [x] **P01.11.07 — Add lifecycle transition tests for completion, stop, and failure.**
 
 **Review checkpoint:** Sampo—not the model runtime—owns the user-visible generation lifecycle.
 
@@ -515,15 +515,15 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.12 — Generation API and SSE stream
 
-- [ ] **P01.12.01 — Add `POST /api/generations`.** Validate prompt size and create one generation ID.
-- [ ] **P01.12.02 — Start harness execution through a backend-owned generation service.** Keep orchestration out of the route function.
-- [ ] **P01.12.03 — Add `GET /api/generations/{id}` for status/error summary.**
-- [ ] **P01.12.04 — Add `GET /api/generations/{id}/events` using SSE.** Emit application-owned event names/data only.
-- [ ] **P01.12.05 — Send a terminal SSE event for completed/stopped/failed states.** Do not make clients infer completion from socket closure alone.
-- [ ] **P01.12.06 — Bound event payload size and reject/handle unknown generation IDs explicitly.**
-- [ ] **P01.12.07 — Add API tests with `FakeModelRuntime` for a complete streamed generation.**
-- [ ] **P01.12.08 — Define and test SSE disconnect behavior.** In Phase 1, losing the owning browser stream should cancel the still-active ephemeral generation rather than leaving hidden work running indefinitely.
-- [ ] **P01.12.09 — Close P01.04.06 by testing host/origin policy on the real SSE route.**
+- [x] **P01.12.01 — Add `POST /api/generations`.** Validate prompt size and create one generation ID.
+- [x] **P01.12.02 — Start harness execution through a backend-owned generation service.** Keep orchestration out of the route function.
+- [x] **P01.12.03 — Add `GET /api/generations/{id}` for status/error summary.**
+- [x] **P01.12.04 — Add `GET /api/generations/{id}/events` using SSE.** Emit application-owned event names/data only.
+- [x] **P01.12.05 — Send a terminal SSE event for completed/stopped/failed states.** Do not make clients infer completion from socket closure alone.
+- [x] **P01.12.06 — Bound event payload size and reject/handle unknown generation IDs explicitly.**
+- [x] **P01.12.07 — Add API tests with `FakeModelRuntime` for a complete streamed generation.**
+- [x] **P01.12.08 — Define and test SSE disconnect behavior.** In Phase 1, losing the owning browser stream should cancel the still-active ephemeral generation rather than leaving hidden work running indefinitely.
+- [x] **P01.12.09 — Close P01.04.06 by testing host/origin policy on the real SSE route.**
 
 **Review checkpoint:** the browser/API can observe a complete fake-runtime generation without any `llama.cpp` dependency.
 
