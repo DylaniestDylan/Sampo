@@ -22,7 +22,7 @@ Refer to `docs/project/Architecture.md` for the authoritative product and securi
 
 See `docs/project/STATUS.md` for the authoritative current implementation state.
 
-The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn local web shell, process-only health endpoint, numeric-loopback-validated bind/runtime settings, local-web trust controls, application-owned runtime boundary, deterministic fake runtime, production `llama.cpp` adapter, minimal application-owned harness, bounded ephemeral generation lifecycle, generation status/API/SSE/cancellation routes, and deterministic tests are available. The production startup path composes the adapter, harness, and backend generation service. Browser prompt/stream controls are not yet available.
+The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn browser generation slice, process-only health endpoint, numeric-loopback-validated bind/runtime settings, local-web trust controls, application-owned runtime boundary, deterministic fake runtime, production `llama.cpp` adapter, minimal application-owned harness, bounded ephemeral generation lifecycle, generation status/API/SSE/cancellation routes, and deterministic tests are available. The production startup path composes the adapter, harness, and backend generation service. The browser can submit one prompt, stream inert output, display truthful lifecycle/failure state, and stop the active generation.
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ Activating the virtual environment is optional because the documented commands i
 
 ## Running Sampo
 
-Start the local web shell from the repository root:
+Start the local browser generation slice from the repository root:
 
 ```bash
 .venv/bin/python -m app
@@ -87,7 +87,7 @@ When P01.17 verifies a working local `llama.cpp` runtime path, document here:
 
 ## Running Automated Tests
 
-The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, mocked `llama.cpp` adapter, application-owned harness, model-tool capability-boundary, generation-lifecycle, and generation-API/SSE/cancellation tests. It does not require a model runtime or internet access once dependencies are installed.
+The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web/browser-slice, safe-rendering, logging, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, mocked `llama.cpp` adapter, application-owned harness, model-tool capability-boundary, generation-lifecycle, and generation-API/SSE/cancellation/failure tests. It does not require a model runtime or internet access once dependencies are installed.
 
 Run the focused startup-composition test with:
 
@@ -125,13 +125,19 @@ Run the focused generation API/SSE tests with:
 .venv/bin/python -m pytest tests/test_generation_api.py
 ```
 
+Run the focused browser generation-slice tests with:
+
+```bash
+.venv/bin/python -m pytest tests/test_web_shell.py
+```
+
 Run the complete current suite with:
 
 ```bash
 .venv/bin/python -m pytest
 ```
 
-The startup-focused command reports one passing test, the adapter-focused command reports 24 passing tests, the tool-boundary-focused command reports 13 passing tests, the harness-focused command reports 20 passing tests, the lifecycle-focused command reports 13 passing tests, the generation-API/SSE/cancellation-focused command reports 17 passing cases, and the complete suite reports 166. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
+The startup-focused command reports one passing test, the adapter-focused command reports 24 passing tests, the tool-boundary-focused command reports 13 passing tests, the harness-focused command reports 20 passing tests, the lifecycle-focused command reports 13 passing tests, the generation-API/SSE/cancellation/failure-focused command reports 20 passing cases, the browser-slice-focused command reports 16 passing tests, and the complete suite reports 183. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
 
 
 ## Real `llama.cpp` Smoke Test

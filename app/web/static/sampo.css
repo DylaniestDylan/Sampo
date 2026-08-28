@@ -7,8 +7,46 @@ body {
   margin: 0;
 }
 
+[x-cloak] {
+  display: none !important;
+}
+
 main {
   margin: 4rem auto;
   max-width: 48rem;
   padding: 0 1rem;
+}
+
+.generation-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+textarea {
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.75rem;
+  resize: vertical;
+  width: 100%;
+}
+
+button {
+  justify-self: start;
+  padding: 0.55rem 1rem;
+}
+
+.generation-status {
+  margin-top: 2rem;
+}
+
+.generation-error {
+  color: #c33;
+  white-space: pre-wrap;
+}
+
+.generation-output pre {
+  font-family: inherit;
+  min-height: 4rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }

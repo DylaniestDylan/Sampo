@@ -1,8 +1,45 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <main>
+  <main x-data="sampoGeneration()">
     <h1>Sampo</h1>
     <p>Local AI workspace</p>
+
+    <p class="generation-status">
+      Status: <output data-generation-status x-text="status">idle</output>
+    </p>
+    <p
+      class="generation-error"
+      data-generation-error
+      x-cloak
+      x-show="errorText.length > 0"
+      x-text="errorText"
+    ></p>
+
+    <form class="generation-form" @submit.prevent="send">
+      <label for="prompt">Prompt</label>
+      <textarea
+        id="prompt"
+        name="prompt"
+        maxlength="{{ max_prompt_chars }}"
+        rows="6"
+        required
+        x-model="prompt"
+        :disabled="isActive"
+      ></textarea>
+      <button type="submit" :disabled="!canSend">Send</button>
+      <button
+        type="button"
+        x-cloak
+        x-show="isActive"
+        :disabled="stopping || generationId === null"
+        @click="stopGeneration"
+      >Stop Generation</button>
+    </form>
+
+    <section class="generation-output" aria-live="polite">
+      <h2>Assistant output</h2>
+      <pre data-assistant-output x-text="responseText"></pre>
+    </section>
   </main>
 {% endblock %}

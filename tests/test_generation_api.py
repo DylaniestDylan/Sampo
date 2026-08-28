@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -19,6 +20,7 @@ from app.harness import (
 from app.main import create_app
 from app.model_runtime import (
     FakeModelRuntime,
+    RuntimeCapabilityError,
     RuntimeCancelledError,
     RuntimeFailureError,
 )
@@ -436,6 +438,121 @@ def test_sse_always_sends_truthful_terminal_event(
         }
         for event_name, _ in events
     ) == 1
+
+
+def test_incompatible_runtime_capability_is_an_explicit_failed_event() -> None:
+    error = "selected local model does not support text chat"
+
+    async def exercise():
+        application = create_app(
+            model_runtime=FakeModelRuntime(
+                failure=RuntimeCapabilityError(error),
+            )
+        )
+        service = application.state.generation_service
+        state = service.create_generation("Prompt")
+        transport = ASGITransport(app=application)
+        async with AsyncClient(
+            transport=transport, base_url="http://localhost"
+        ) as client:
+            response = await client.get(
+                f"/api/generations/{state.generation_id}/events",
+                headers={"origin": "http://localhost"},
+            )
+        return service.get_generation(state.generation_id), response
+
+    state, response = asyncio.run(exercise())
+    events = _parse_sse(response.text)
+
+    assert state is not None
+    assert state.status is GenerationStatus.FAILED
+    assert events[-1] == (
+        "generation.failed",
+        {
+            "generation_id": state.generation_id,
+            "error": error,
+        },
+    )
+    assert "generation.completed" not in response.text
+
+
+def test_midstream_failure_preserves_partial_text_as_incomplete() -> None:
+    error = "local runtime failed after partial output"
+
+    async def exercise():
+        application = create_app(
+            model_runtime=FakeModelRuntime(
+                chunks=("partial answer", "must not appear"),
+                failure=RuntimeFailureError(error),
+                failure_after_chunks=1,
+            )
+        )
+        service = application.state.generation_service
+        state = service.create_generation("Prompt")
+        transport = ASGITransport(app=application)
+        async with AsyncClient(
+            transport=transport, base_url="http://localhost"
+        ) as client:
+            response = await client.get(
+                f"/api/generations/{state.generation_id}/events",
+                headers={"origin": "http://localhost"},
+            )
+        return service.get_generation(state.generation_id), response
+
+    state, response = asyncio.run(exercise())
+    events = _parse_sse(response.text)
+
+    assert state is not None
+    assert state.status is GenerationStatus.FAILED
+    assert [name for name, _ in events] == [
+        "generation.started",
+        "generation.delta",
+        "generation.failed",
+    ]
+    assert events[1][1]["text"] == "partial answer"
+    assert events[-1][1]["error"] == error
+    assert "must not appear" not in response.text
+    assert "generation.completed" not in response.text
+
+
+def test_default_operational_logs_exclude_csrf_prompt_and_output(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    secret_prompt = "PROMPT_SECRET_1ff190af"
+    secret_output = "OUTPUT_SECRET_b0445da3"
+    caplog.set_level(logging.DEBUG)
+
+    async def exercise():
+        application = create_app(
+            model_runtime=FakeModelRuntime(chunks=(secret_output,))
+        )
+        csrf_token = application.state.csrf_token
+        transport = ASGITransport(app=application)
+        async with AsyncClient(
+            transport=transport, base_url="http://localhost"
+        ) as client:
+            created = await client.post(
+                "/api/generations",
+                json={"prompt": secret_prompt},
+                headers={
+                    "origin": "http://localhost",
+                    "x-csrf-token": csrf_token,
+                },
+            )
+            generation_id = created.json()["generation_id"]
+            streamed = await client.get(
+                f"/api/generations/{generation_id}/events",
+                headers={"origin": "http://localhost"},
+            )
+        return csrf_token, created, streamed
+
+    csrf_token, created, streamed = asyncio.run(exercise())
+
+    assert created.status_code == 202
+    assert streamed.status_code == 200
+    assert secret_prompt not in caplog.text
+    assert secret_output not in caplog.text
+    assert csrf_token not in caplog.text
 
 
 def test_large_runtime_delta_is_split_into_bounded_sse_payloads() -> None:

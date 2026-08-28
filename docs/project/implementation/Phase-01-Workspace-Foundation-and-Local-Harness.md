@@ -547,14 +547,14 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.14 — Minimal browser chat slice
 
-- [ ] **P01.14.01 — Add a prompt textarea and Send button to the Phase 1 page.**
-- [ ] **P01.14.02 — Add a small Alpine component for generation UI state.** Keep transport code narrow.
-- [ ] **P01.14.03 — Submit the prompt to the Sampo generation API with the CSRF token.**
-- [ ] **P01.14.04 — Subscribe to the generation SSE stream.**
-- [ ] **P01.14.05 — Append streamed text as inert text content.** Do not use unsafe raw-HTML insertion.
-- [ ] **P01.14.06 — Display `streaming/completed/stopped/failed` status explicitly.**
-- [ ] **P01.14.07 — Add Stop Generation while a generation is active.**
-- [ ] **P01.14.08 — Disable or otherwise prevent overlapping sends in this Phase 1 single-generation UI.** Concurrency expansion can be considered with durable conversations later.
+- [x] **P01.14.01 — Add a prompt textarea and Send button to the Phase 1 page.**
+- [x] **P01.14.02 — Add a small Alpine component for generation UI state.** Keep transport code narrow.
+- [x] **P01.14.03 — Submit the prompt to the Sampo generation API with the CSRF token.**
+- [x] **P01.14.04 — Subscribe to the generation SSE stream.**
+- [x] **P01.14.05 — Append streamed text as inert text content.** Do not use unsafe raw-HTML insertion.
+- [x] **P01.14.06 — Display `streaming/completed/stopped/failed` status explicitly.**
+- [x] **P01.14.07 — Add Stop Generation while a generation is active.**
+- [x] **P01.14.08 — Disable or otherwise prevent overlapping sends in this Phase 1 single-generation UI.** Concurrency expansion can be considered with durable conversations later.
 
 **Review checkpoint:** a human can exercise the full fake-runtime vertical slice in the browser and understand whether it completed, stopped, or failed.
 
@@ -562,12 +562,12 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.15 — Failure truthfulness and safe rendering
 
-- [ ] **P01.15.01 — Surface missing/unavailable local runtime as an explicit UI error.** Do not claim a model response was generated.
-- [ ] **P01.15.02 — Surface incompatible runtime capability as an explicit error.**
-- [ ] **P01.15.03 — Surface mid-stream runtime failure as `failed` while retaining already visible partial text as incomplete.**
-- [ ] **P01.15.04 — Add hostile model-output fixture containing `<script>`, event handlers, and HTML.** Prove it renders inertly.
-- [ ] **P01.15.05 — Add a hostile error-string/filename-like fixture if such strings are displayed.** Prove UI escaping is consistent for all untrusted runtime text.
-- [ ] **P01.15.06 — Ensure operational logs do not log secrets and avoid raw prompt/output content by default.** Add focused tests where practical.
+- [x] **P01.15.01 — Surface missing/unavailable local runtime as an explicit UI error.** Do not claim a model response was generated.
+- [x] **P01.15.02 — Surface incompatible runtime capability as an explicit error.**
+- [x] **P01.15.03 — Surface mid-stream runtime failure as `failed` while retaining already visible partial text as incomplete.**
+- [x] **P01.15.04 — Add hostile model-output fixture containing `<script>`, event handlers, and HTML.** Prove it renders inertly.
+- [x] **P01.15.05 — Add a hostile error-string/filename-like fixture if such strings are displayed.** Prove UI escaping is consistent for all untrusted runtime text.
+- [x] **P01.15.06 — Ensure operational logs do not log secrets and avoid raw prompt/output content by default.** Add focused tests where practical.
 
 **Review checkpoint:** failure is visible and untrusted runtime/model text cannot become active browser content.
 
