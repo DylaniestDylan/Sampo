@@ -475,11 +475,11 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.09 — Explicit empty tool boundary
 
-- [ ] **P01.09.01 — Add an application-owned tool registry abstraction with no registered tools.** Avoid generic callables that could become accidental host capabilities.
-- [ ] **P01.09.02 — Make the harness receive the current tool descriptions from that registry.** Phase 1 result must be an empty tool list.
-- [ ] **P01.09.03 — Add fail-closed handling for an unexpected model tool request.** No fallback to filesystem/network/process helpers.
-- [ ] **P01.09.04 — Add a security regression test asserting the Phase 1 model-facing tool surface is empty.**
-- [ ] **P01.09.05 — Add tests asserting forbidden generic capability names/types are not registered.** Cover filesystem, shell/process, code execution, Git, package install, arbitrary network/browser, dynamic plugins, and IDE/Godot control.
+- [x] **P01.09.01 — Add an application-owned tool registry abstraction with no registered tools.** Avoid generic callables that could become accidental host capabilities.
+- [x] **P01.09.02 — Make the harness receive the current tool descriptions from that registry.** Phase 1 result must be an empty tool list.
+- [x] **P01.09.03 — Add fail-closed handling for an unexpected model tool request.** No fallback to filesystem/network/process helpers.
+- [x] **P01.09.04 — Add a security regression test asserting the Phase 1 model-facing tool surface is empty.**
+- [x] **P01.09.05 — Add tests asserting forbidden generic capability names/types are not registered.** Cover filesystem, shell/process, code execution, Git, package install, arbitrary network/browser, dynamic plugins, and IDE/Godot control.
 
 **Review checkpoint:** capability absence is a property of the application structure, not a prompt instruction.
 

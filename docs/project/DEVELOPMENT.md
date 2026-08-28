@@ -87,7 +87,7 @@ When P01.17 verifies a working local `llama.cpp` runtime path, document here:
 
 ## Running Automated Tests
 
-The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, and mocked `llama.cpp` adapter tests. It does not require a model runtime or internet access once dependencies are installed.
+The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, mocked `llama.cpp` adapter, and model-tool capability-boundary tests. It does not require a model runtime or internet access once dependencies are installed.
 
 Run the focused startup-composition test with:
 
@@ -101,13 +101,19 @@ Run the focused `llama.cpp` adapter tests with:
 .venv/bin/python -m pytest tests/test_llama_cpp_runtime.py
 ```
 
+Run the focused model-tool capability-boundary tests with:
+
+```bash
+.venv/bin/python -m pytest tests/test_tool_boundary.py
+```
+
 Run the complete current suite with:
 
 ```bash
 .venv/bin/python -m pytest
 ```
 
-The startup-focused command reports one passing test, the adapter-focused command reports 23 passing tests, and the complete suite reports 101. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
+The startup-focused command reports one passing test, the adapter-focused command reports 23 passing tests, the tool-boundary-focused command reports 13 passing tests, and the complete suite reports 114. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
 
 
 ## Real `llama.cpp` Smoke Test
