@@ -487,13 +487,13 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.10 — Minimal application-owned harness
 
-- [ ] **P01.10.01 — Add a harness request type containing only the current Phase 1 user prompt/request ID.**
-- [ ] **P01.10.02 — Add minimal trusted application policy text/configuration as a backend-owned input.** Do not pretend a Phase 1 Persona exists.
-- [ ] **P01.10.03 — Add deterministic context assembly for application policy + current user prompt.** Enforce a simple input-size bound.
-- [ ] **P01.10.04 — Invoke the injected `ModelRuntime`; do not call `llama.cpp` transport from the harness directly.**
-- [ ] **P01.10.05 — Forward normalized streaming deltas to the caller.**
-- [ ] **P01.10.06 — Translate runtime failure/cancellation into truthful terminal harness events.**
-- [ ] **P01.10.07 — Add harness tests using only `FakeModelRuntime`.**
+- [x] **P01.10.01 — Add a harness request type containing only the current Phase 1 user prompt/request ID.**
+- [x] **P01.10.02 — Add minimal trusted application policy text/configuration as a backend-owned input.** Do not pretend a Phase 1 Persona exists.
+- [x] **P01.10.03 — Add deterministic context assembly for application policy + current user prompt.** Enforce a simple input-size bound.
+- [x] **P01.10.04 — Invoke the injected `ModelRuntime`; do not call `llama.cpp` transport from the harness directly.**
+- [x] **P01.10.05 — Forward normalized streaming deltas to the caller.**
+- [x] **P01.10.06 — Translate runtime failure/cancellation into truthful terminal harness events.**
+- [x] **P01.10.07 — Add harness tests using only `FakeModelRuntime`.**
 
 **Review checkpoint:** one prompt can traverse the application-owned harness without persistence, tools, research, or Persona state.
 

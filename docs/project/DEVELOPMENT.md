@@ -22,7 +22,7 @@ Refer to `docs/project/Architecture.md` for the authoritative product and securi
 
 See `docs/project/STATUS.md` for the authoritative current implementation state.
 
-The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn local web shell, process-only health endpoint, numeric-loopback-validated bind/runtime settings, local-web trust controls, application-owned runtime boundary, deterministic fake runtime, production `llama.cpp` adapter, and deterministic tests are available. The adapter is not yet connected to a harness, generation API, or browser UI.
+The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn local web shell, process-only health endpoint, numeric-loopback-validated bind/runtime settings, local-web trust controls, application-owned runtime boundary, deterministic fake runtime, production `llama.cpp` adapter, minimal application-owned harness, and deterministic tests are available. The harness and adapter are not yet composed into the runnable generation API or browser UI.
 
 ## Prerequisites
 
@@ -87,7 +87,7 @@ When P01.17 verifies a working local `llama.cpp` runtime path, document here:
 
 ## Running Automated Tests
 
-The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, mocked `llama.cpp` adapter, and model-tool capability-boundary tests. It does not require a model runtime or internet access once dependencies are installed.
+The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, fake-runtime, mocked `llama.cpp` adapter, application-owned harness, and model-tool capability-boundary tests. It does not require a model runtime or internet access once dependencies are installed.
 
 Run the focused startup-composition test with:
 
@@ -107,13 +107,19 @@ Run the focused model-tool capability-boundary tests with:
 .venv/bin/python -m pytest tests/test_tool_boundary.py
 ```
 
+Run the focused application-owned harness tests with:
+
+```bash
+.venv/bin/python -m pytest tests/test_harness.py
+```
+
 Run the complete current suite with:
 
 ```bash
 .venv/bin/python -m pytest
 ```
 
-The startup-focused command reports one passing test, the adapter-focused command reports 24 passing tests, the tool-boundary-focused command reports 13 passing tests, and the complete suite reports 115. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
+The startup-focused command reports one passing test, the adapter-focused command reports 24 passing tests, the tool-boundary-focused command reports 13 passing tests, the harness-focused command reports 19 passing tests, and the complete suite reports 134. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
 
 
 ## Real `llama.cpp` Smoke Test
