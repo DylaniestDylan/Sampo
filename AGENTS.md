@@ -47,6 +47,8 @@ For any non-trivial implementation task, read what is relevant in this order:
 5. nearby code and tests;
 6. `docs/project/DEVELOPMENT.md` when the task affects setup, execution, testing, smoke tests, or troubleshooting.
 
+When Approved Phase Execution Mode applies, its context-loading rules supersede this per-task reading sequence for the duration of that execution run. Perform the required context load once at the beginning of the run and do not repeat it merely because execution advances to another authorized checkbox.
+
 This is a reading sequence, not an authority-precedence ladder. Authority remains domain-specific as defined by `docs/project/Architecture.md` §1.1.
 
 Identify the applicable architectural invariants and phase acceptance criteria before changing code.
@@ -82,11 +84,62 @@ Before substantially implementing a phase:
 5. implement the smallest coherent compliant change;
 6. satisfy the relevant tests and acceptance criteria before substantially advancing.
 
+Approved Phase Execution Mode changes execution-session granularity, not implementation granularity. Each checkbox remains a small coherent change that must be independently satisfied and verified, but completing one authorized checkbox is not by itself a reason to end the execution run.
+
 Phases are sequential by default. Do not pull later-phase product behavior forward merely because it is convenient.
 
 Small preparatory abstractions are acceptable only when necessary for the current phase and when they do not effectively implement later-phase behavior.
 
 Do not mark a phase task complete until its behavior and required focused tests are actually satisfied.
+
+## Approved Phase Execution Mode
+
+When the user explicitly instructs Codex to execute an already-approved implementation phase or a bounded range of tasks within an approved phase contract, the approved phase contract is the implementation plan.
+
+In this mode:
+
+1. Establish repository state once at the beginning of the execution run.
+2. Read `docs/project/STATUS.md`, the active approved phase contract, relevant nearby code/tests, relevant ADRs if any, and only the Architecture sections necessary to identify the invariants governing the authorized work.
+3. Do not reread the full Architecture document or re-plan the phase between individual checkboxes unless current repository evidence reveals a concrete conflict or ambiguity that requires it.
+4. Treat already-completed and verified checkboxes recorded by the repository as established state unless current tests, code, or documentation provide concrete evidence that the recorded state is stale or incorrect.
+5. Treat the authorized incomplete phase checkboxes as an ordered execution queue.
+6. Do not enter a separate planning phase for each checkbox.
+7. Do not stop merely because one ordinary checkbox has been completed.
+8. For each authorized checkbox:
+   * implement only the behavior required by that checkbox;
+   * make routine implementation decisions autonomously where Architecture and the active phase contract leave them open;
+   * run the narrowest relevant verification;
+   * mark the checkbox complete only after its required behavior and verification genuinely pass;
+   * update repository documentation only where the existing documentation rules require it;
+   * perform a brief scope check before advancing;
+   * continue immediately to the next authorized checkbox.
+
+9. The per-checkbox scope check is:
+   * the current checkbox is genuinely satisfied;
+   * focused verification passes;
+   * no behavior belonging exclusively to a later checkbox was unnecessarily implemented;
+   * no applicable architectural invariant was violated.
+
+10. Later checkboxes may be read for dependency awareness, but they are context rather than permission to implement their behavior early.
+11. At each review checkpoint defined by the active phase contract, run the appropriate broader verification before advancing. If the checkpoint passes, continue automatically.
+12. Do not repeatedly re-review previously verified work unless a failing test, dependency conflict, or current repository evidence gives a concrete reason to do so.
+13. Do not reinterpret established architectural decisions. Architecture and the active phase contract are specifications, not brainstorming material.
+14. When an implementation detail is deliberately left open, choose the smallest conventional implementation compatible with existing code, Architecture, and the active phase contract.
+15. Refactoring is authorized only when required by the current checkbox or necessary to preserve an explicit architectural invariant. Do not perform speculative cleanup, unrelated renames, premature generalization, framework extraction, future-proofing, or dependency changes unrelated to the authorized work.
+16. Keep command and tool output concise. Prefer targeted file reads/searches, focused diffs, concise test output, and narrow diagnostics over dumping large files or logs into context.
+17. Stop only when:
+* the authorized execution range is complete;
+* an existing repository stop condition is reached;
+* a required external dependency or environment prevents further verification;
+* current evidence exposes a material Architecture/phase-contract conflict;
+* continuing requires a product or architectural decision not resolved by governing documents;
+* continuing would require work outside the authorized phase or task range.
+
+18. Do not stop for ordinary implementation problems. Diagnose, fix, verify, and continue within the authorized range.
+19. Never begin a later phase unless the user explicitly authorizes it.
+
+The purpose of Approved Phase Execution Mode is to execute an existing approved plan efficiently while preserving the same architectural, testing, documentation, and stop-condition requirements as ordinary repository work.
+
 
 ## Codex Development Permissions
 
@@ -178,6 +231,10 @@ Do not put unverified or hypothetical commands into `docs/project/DEVELOPMENT.md
 ## Task Workflow
 
 At task start:
+
+Outside Approved Phase Execution Mode, this workflow applies to each requested implementation task.
+
+In Approved Phase Execution Mode, the authorized execution range is the task for workflow purposes. Perform the task-start workflow once at the beginning of the execution run. The per-checkbox verification and scope checks defined by Approved Phase Execution Mode replace restarting this workflow between authorized checkboxes.
 
 1. read the applicable documents;
 2. inspect relevant code/tests;

@@ -22,7 +22,7 @@ Refer to `docs/project/Architecture.md` for the authoritative product and securi
 
 See `docs/project/STATUS.md` for the authoritative current implementation state.
 
-The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn local API shell, process-only health endpoint, numeric-loopback-validated bind settings object, and deterministic tests are available. There is no browser UI or local-model integration yet.
+The Phase 1 Python package skeleton, runnable FastAPI/Uvicorn local web shell, process-only health endpoint, numeric-loopback-validated bind settings, local-web trust controls, application-owned runtime boundary, deterministic fake runtime, and deterministic tests are available. There is no prompt-generation UI or `llama.cpp` integration yet.
 
 ## Prerequisites
 
@@ -31,6 +31,7 @@ The current verified development environment uses:
 - Python 3.14.7, matching the minimum declared in `pyproject.toml`;
 - pip 26.0.1;
 - FastAPI 0.141.1 from the production dependency list;
+- Jinja2 3.1.6 from the production dependency list;
 - Uvicorn 0.52.4 from the production dependency list;
 - HTTPX 0.28.1 from the `test` dependency group;
 - pytest 9.1.1 from the `test` dependency group.
@@ -44,6 +45,7 @@ Create a project-local virtual environment and install the current production an
 ```bash
 python3.14 -m venv .venv
 .venv/bin/python -m pip install "fastapi>=0.141,<0.142"
+.venv/bin/python -m pip install "jinja2>=3.1,<4"
 .venv/bin/python -m pip install "uvicorn>=0.52,<0.53"
 .venv/bin/python -m pip install --group test
 ```
@@ -52,7 +54,7 @@ Activating the virtual environment is optional because the documented commands i
 
 ## Running Sampo
 
-Start the local API shell from the repository root:
+Start the local web shell from the repository root:
 
 ```bash
 .venv/bin/python -m app
@@ -82,7 +84,7 @@ When the active phase provides a working local `llama.cpp` runtime path, documen
 
 ## Running Automated Tests
 
-The current suite contains deterministic package-import, application-factory, process-health endpoint, application-settings, and startup-composition tests. It does not require a model runtime or internet access once dependencies are installed.
+The current suite contains deterministic package-import, application-factory, process-health, settings, startup-composition, local-web, trust-perimeter, runtime-domain, runtime-protocol, runtime-contract, and fake-runtime tests. It does not require a model runtime or internet access once dependencies are installed.
 
 Run the focused startup-composition test with:
 
@@ -96,7 +98,7 @@ Run the complete current suite with:
 .venv/bin/python -m pytest
 ```
 
-Both commands are currently verified with Python 3.14.7, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1. The focused command reports one passing test; the complete suite reports eleven.
+Both commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1. The focused command reports one passing test; the complete suite reports 66.
 
 
 ## Real `llama.cpp` Smoke Test

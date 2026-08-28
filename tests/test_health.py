@@ -7,7 +7,7 @@ from app.main import create_app
 
 async def request_health():
     transport = ASGITransport(app=create_app())
-    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+    async with AsyncClient(transport=transport, base_url="http://localhost") as client:
         return await client.get("/health")
 
 

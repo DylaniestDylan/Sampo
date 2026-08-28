@@ -231,7 +231,8 @@ Configuration must fail visibly when invalid. A remote model endpoint is rejecte
 
 Application code should depend on a narrow interface conceptually equivalent to:
 
-```python
+```
+python
 class ModelRuntime(Protocol):
     async def get_capabilities(self) -> RuntimeCapabilities: ...
     async def stream_chat(self, request: ModelRequest) -> AsyncIterator[ModelEvent]: ...
@@ -367,6 +368,7 @@ Each numbered work package below is deliberately split further into review-sized
 
 Each checkbox should be implementable and reviewable as one small change. Prefer one observable behavior per change. Avoid combining infrastructure, UI, runtime integration, and security changes in the same review unless they are inseparable.
 
+Execution batching does not merge checkbox scope. Multiple checkboxes may be executed sequentially within one Approved Phase Execution Mode run, but each checkbox remains an independently satisfiable, testable, and reviewable change unit. Completing one checkbox does not require ending the Codex execution session.
 A task is complete only when its focused tests pass and the reviewer can explain what changed without needing to understand unfinished later tasks.
 
 ---
@@ -398,11 +400,11 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.03 — Jinja2/Alpine.js local web foundation
 
-- [ ] **P01.03.01 — Add Jinja2 template support and a minimal base template.** No chat behavior yet.
-- [ ] **P01.03.02 — Add `GET /` rendering the Sampo shell.** Keep the page intentionally sparse.
-- [ ] **P01.03.03 — Add local static-file serving.** Include one local CSS file.
-- [ ] **P01.03.04 — Vendor/serve Alpine.js locally.** Do not reference a CDN.
-- [ ] **P01.03.05 — Add a test proving the page references only local required assets.**
+- [x] **P01.03.01 — Add Jinja2 template support and a minimal base template.** No chat behavior yet.
+- [x] **P01.03.02 — Add `GET /` rendering the Sampo shell.** Keep the page intentionally sparse.
+- [x] **P01.03.03 — Add local static-file serving.** Include one local CSS file.
+- [x] **P01.03.04 — Vendor/serve Alpine.js locally.** Do not reference a CDN.
+- [x] **P01.03.05 — Add a test proving the page references only local required assets.**
 
 **Review checkpoint:** browser shell loads entirely from the local Sampo service with JavaScript disabled or enabled.
 
@@ -410,11 +412,11 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.04 — Local web/API trust perimeter
 
-- [ ] **P01.04.01 — Add trusted-host validation for loopback/local hostnames.** Test allowed and rejected `Host` headers.
-- [ ] **P01.04.02 — Add same-origin validation helper for browser requests.** Keep it independent of generation code.
-- [ ] **P01.04.03 — Add an application-issued CSRF token to the rendered page.** Token is backend-owned and never model-facing.
-- [ ] **P01.04.04 — Add CSRF validation for state-changing `/api/*` requests.** Test missing/invalid/valid token cases.
-- [ ] **P01.04.05 — Confirm no permissive CORS middleware/configuration exists.** Add a regression test for unrelated origins.
+- [x] **P01.04.01 — Add trusted-host validation for loopback/local hostnames.** Test allowed and rejected `Host` headers.
+- [x] **P01.04.02 — Add same-origin validation helper for browser requests.** Keep it independent of generation code.
+- [x] **P01.04.03 — Add an application-issued CSRF token to the rendered page.** Token is backend-owned and never model-facing.
+- [x] **P01.04.04 — Add CSRF validation for state-changing `/api/*` requests.** Test missing/invalid/valid token cases.
+- [x] **P01.04.05 — Confirm no permissive CORS middleware/configuration exists.** Add a regression test for unrelated origins.
 - [ ] **P01.04.06 — Apply the same host/origin policy to SSE endpoints.** Add a focused streaming-origin test once the test endpoint exists; this checkbox may initially land as middleware coverage and be closed after P01.12.
 
 **Review checkpoint:** an unrelated web origin cannot freely drive Sampo's browser-facing control plane.
@@ -423,11 +425,11 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.05 — Runtime domain types
 
-- [ ] **P01.05.01 — Add `RuntimeCapabilities`.** Include only Phase 1 facts needed to describe text-chat/streaming support and runtime availability.
-- [ ] **P01.05.02 — Add `ModelRequest`.** Keep Persona/conversation/research fields out.
-- [ ] **P01.05.03 — Add application-owned model stream event types.** Start with started/delta/completed/stopped/failed.
-- [ ] **P01.05.04 — Add a bounded runtime error taxonomy.** Distinguish unavailable, invalid configuration, incompatible capability, cancelled, and runtime failure where practical.
-- [ ] **P01.05.05 — Unit-test construction/validation of these types.**
+- [x] **P01.05.01 — Add `RuntimeCapabilities`.** Include only Phase 1 facts needed to describe text-chat/streaming support and runtime availability.
+- [x] **P01.05.02 — Add `ModelRequest`.** Keep Persona/conversation/research fields out.
+- [x] **P01.05.03 — Add application-owned model stream event types.** Start with started/delta/completed/stopped/failed.
+- [x] **P01.05.04 — Add a bounded runtime error taxonomy.** Distinguish unavailable, invalid configuration, incompatible capability, cancelled, and runtime failure where practical.
+- [x] **P01.05.05 — Unit-test construction/validation of these types.**
 
 **Review checkpoint:** the rest of Sampo can describe model interaction without importing a `llama.cpp` transport schema.
 
@@ -435,9 +437,9 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.06 — `ModelRuntime` boundary
 
-- [ ] **P01.06.01 — Define the `ModelRuntime` protocol/interface.** Include capabilities, streaming, and abort.
-- [ ] **P01.06.02 — Make runtime selection/injection occur at application composition time.** Do not use global transport state.
-- [ ] **P01.06.03 — Add a contract test scaffold that any runtime adapter can run against.**
+- [x] **P01.06.01 — Define the `ModelRuntime` protocol/interface.** Include capabilities, streaming, and abort.
+- [x] **P01.06.02 — Make runtime selection/injection occur at application composition time.** Do not use global transport state.
+- [x] **P01.06.03 — Add a contract test scaffold that any runtime adapter can run against.**
 
 **Review checkpoint:** harness/API code can depend on `ModelRuntime` without knowing about `llama.cpp` HTTP/process details.
 
@@ -445,11 +447,11 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.07 — Deterministic fake runtime
 
-- [ ] **P01.07.01 — Add `FakeModelRuntime` that streams deterministic text chunks.**
-- [ ] **P01.07.02 — Add configurable fake-runtime delay/gating for cancellation tests.** Keep tests deterministic; do not use arbitrary long sleeps.
-- [ ] **P01.07.03 — Add fake-runtime failure injection.** Allow a test to produce a known runtime failure.
-- [ ] **P01.07.04 — Add fake-runtime abort tracking.** Tests must be able to prove `abort(request_id)` was called.
-- [ ] **P01.07.05 — Run the runtime contract tests against the fake runtime.**
+- [x] **P01.07.01 — Add `FakeModelRuntime` that streams deterministic text chunks.**
+- [x] **P01.07.02 — Add configurable fake-runtime delay/gating for cancellation tests.** Keep tests deterministic; do not use arbitrary long sleeps.
+- [x] **P01.07.03 — Add fake-runtime failure injection.** Allow a test to produce a known runtime failure.
+- [x] **P01.07.04 — Add fake-runtime abort tracking.** Tests must be able to prove `abort(request_id)` was called.
+- [x] **P01.07.05 — Run the runtime contract tests against the fake runtime.**
 
 **Review checkpoint:** the complete Phase 1 application can be developed/tested offline without `llama.cpp` running.
 
@@ -632,6 +634,8 @@ For implementation work, use these checkpoints rather than reviewing the entire 
 12. **Phase closure:** P01.18
 
 A review should normally stop at the checkpoint boundary if a concern is found. Avoid layering later work on top of a disputed boundary.
+
+These are review boundaries, not mandatory Codex-session boundaries. An Approved Phase Execution Mode run may continue across multiple review checkpoints when the required checkpoint verification passes and no concern or stop condition is present.
 
 ---
 
