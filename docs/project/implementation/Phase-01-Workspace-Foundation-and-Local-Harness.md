@@ -575,16 +575,16 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.16 — Phase 1 security/boundary regression suite
 
-- [ ] **P01.16.01 — Add a test proving default application configuration is loopback-only.**
-- [ ] **P01.16.02 — Add a test proving a remote model-runtime URL/configuration is rejected.**
-- [ ] **P01.16.03 — Add a test proving unrelated browser origins cannot invoke state-changing APIs.**
-- [ ] **P01.16.04 — Add a test proving invalid local-web hosts are rejected.**
-- [ ] **P01.16.05 — Add a test proving required frontend assets do not rely on third-party CDNs.**
-- [ ] **P01.16.06 — Add a test proving model-facing tools remain empty.**
-- [ ] **P01.16.07 — Add a test proving an unexpected tool request fails closed.**
-- [ ] **P01.16.08 — Add a test proving runtime failure does not select a different/remote model automatically.**
-- [ ] **P01.16.09 — Add a test proving cancellation produces `stopped` and terminates work.**
-- [ ] **P01.16.10 — Add a test proving unsafe model HTML is not executed/rendered as trusted markup.**
+- [x] **P01.16.01 — Add a test proving default application configuration is loopback-only.**
+- [x] **P01.16.02 — Add a test proving a remote model-runtime URL/configuration is rejected.**
+- [x] **P01.16.03 — Add a test proving unrelated browser origins cannot invoke state-changing APIs.**
+- [x] **P01.16.04 — Add a test proving invalid local-web hosts are rejected.**
+- [x] **P01.16.05 — Add a test proving required frontend assets do not rely on third-party CDNs.**
+- [x] **P01.16.06 — Add a test proving model-facing tools remain empty.**
+- [x] **P01.16.07 — Add a test proving an unexpected tool request fails closed.**
+- [x] **P01.16.08 — Add a test proving runtime failure does not select a different/remote model automatically.**
+- [x] **P01.16.09 — Add a test proving cancellation produces `stopped` and terminates work.**
+- [x] **P01.16.10 — Add a test proving unsafe model HTML is not executed/rendered as trusted markup.**
 
 **Review checkpoint:** the permanent safety boundaries relevant to Phase 1 have automated regression coverage before future capability surfaces are added.
 

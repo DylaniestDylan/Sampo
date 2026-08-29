@@ -131,13 +131,19 @@ Run the focused browser generation-slice tests with:
 .venv/bin/python -m pytest tests/test_web_shell.py
 ```
 
+Run the focused Phase 1 security-boundary regression tests with:
+
+```bash
+.venv/bin/python -m pytest tests/test_phase_one_security_boundaries.py
+```
+
 Run the complete current suite with:
 
 ```bash
 .venv/bin/python -m pytest
 ```
 
-The startup-focused command reports one passing test, the adapter-focused command reports 24 passing tests, the tool-boundary-focused command reports 13 passing tests, the harness-focused command reports 20 passing tests, the lifecycle-focused command reports 13 passing tests, the generation-API/SSE/cancellation/failure-focused command reports 20 passing cases, the browser-slice-focused command reports 16 passing tests, and the complete suite reports 183. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
+The startup-focused command reports one passing test, the adapter-focused command reports 24 passing tests, the tool-boundary-focused command reports 13 passing tests, the harness-focused command reports 20 passing tests, the lifecycle-focused command reports 13 passing tests, the generation-API/SSE/cancellation/failure-focused command reports 20 passing cases, the browser-slice-focused command reports 16 passing tests, the Phase 1 security-boundary command reports 14 passing tests, and the complete suite reports 197. These commands remain verified with Python 3.14.7, FastAPI 0.141.1, Jinja2 3.1.6, Uvicorn 0.52.4, HTTPX 0.28.1, and pytest 9.1.1.
 
 
 ## Real `llama.cpp` Smoke Test

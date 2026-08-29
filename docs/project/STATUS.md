@@ -14,7 +14,7 @@ The documentation authority model is defined in `docs/project/Architecture.md` �
 **Current roadmap phase:** Phase 1 — Workspace Foundation and Local Harness.  
 **Active phase contract:** `docs/project/implementation/Phase-01-Workspace-Foundation-and-Local-Harness.md`  
 **Phase contract status:** Approved and active.  
-**Phase 1 implementation status:** P01.01–P01.15 complete, including the browser-slice failure/safe-rendering review checkpoint. P01.16.01 is the next executable task.
+**Phase 1 implementation status:** P01.01–P01.16 complete, including the Phase 1 security/boundary regression review checkpoint. P01.17 is the next executable task.
 **Runnable application:** Yes — local API and Phase 1 browser generation slice.
 **Usable end-user functionality:** The browser can submit one ephemeral prompt, stream inert assistant text, display truthful terminal/failure state, and stop the active generation through the backend API when a configured local runtime is available.
 
@@ -67,7 +67,7 @@ Later-phase features are intentionally absent and should remain absent until the
 
 ## Current Verification
 
-The local API/browser slice is runnable. The automated suite contains 183 deterministic foundation, web-shell/browser-slice, safe-rendering, logging, trust-perimeter, runtime-domain, runtime-contract, mocked-runtime-adapter, harness, tool-boundary, generation-lifecycle, generation-API/SSE/cancellation/failure, health-route, settings, and startup test cases.
+The local API/browser slice is runnable. The automated suite contains 197 deterministic foundation, web-shell/browser-slice, safe-rendering, logging, trust-perimeter, runtime-domain, runtime-contract, mocked-runtime-adapter, harness, tool-boundary, generation-lifecycle, generation-API/SSE/cancellation/failure, health-route, settings, startup, and Phase 1 security-boundary test cases.
 
 The initial `pyproject.toml` metadata has been checked with TOML-aware IDE inspection and `git diff --check`.
 
@@ -90,6 +90,8 @@ The repaired P01.11–P01.12 Lifecycle/API checkpoint passed **72 focused lifecy
 The P01.13 end-to-end cancellation checkpoint passed **45 focused fake-runtime, harness, and generation-API/SSE tests**. They prove the cancel route's trusted Host, same-origin, and CSRF controls; service-owned cancellation signaling; propagation through the harness to `ModelRuntime.abort()` using an internal request ID distinct from the browser generation ID; truthful `stopped` terminal state; suppression of a gate-released late runtime chunk and normal completion; safely repeated cancellation; owning-SSE disconnect runtime abort; and removal of the backend generation task after terminal stop. The complete deterministic offline suite passed **166 tests** with Python 3.14.7 and required no real `llama.cpp` process or internet access.
 
 The P01.14–P01.15 browser-slice checkpoint passed **96 focused web-shell, generation-API/SSE, local-web-security, template, startup, harness, and tool-boundary tests**. They prove the local Alpine generation state, CSRF-protected prompt submission and cancellation, application-owned SSE subscription, explicit lifecycle states, overlap prevention, truthful unavailable/incompatible/mid-stream failures, partial-output retention, inert hostile model/error text, and default log exclusion of representative CSRF/prompt/output secrets. The focused web-shell suite passed **16 tests**, the focused generation API/SSE suite passed **20 tests**, and JavaScript syntax validation passed with Node.js 24.13.0. The complete deterministic offline suite passed **183 tests** with Python 3.14.7 and required no real `llama.cpp` process or internet access.
+
+The P01.16 security/boundary regression checkpoint passed **15 focused tests** covering all ten permanent Phase 1 proofs, including the production adapter's explicit no-retry/no-remote-fallback case. The complete deterministic offline suite passed **197 tests** with Python 3.14.7 and required no real `llama.cpp` process or internet access. PyCharm inspection reported no errors or warnings in the new regression module apart from one weak duplicate-code observation, and `git diff --check` passed.
 
 ## Status Update Rules
 
