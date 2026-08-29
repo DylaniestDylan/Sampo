@@ -41,7 +41,26 @@ A minimal FastAPI application factory and `GET /health` route exist. The route r
 
 Application-owned `RuntimeCapabilities`, `ModelRequest`, normalized started/delta/completed/stopped/failed event values, a bounded unexpected-tool-request marker, and a bounded runtime error taxonomy exist without `llama.cpp` transport fields. The `ModelRuntime` protocol defines capability probing, streaming, and abort; runtime injection is application-composition state rather than global transport state. `FakeModelRuntime` provides deterministic chunks, an event gate, known-failure injection, abort-call tracking, and mechanical gate release without a late chunk after abort, and passes the reusable runtime contract tests. A typed `ApplicationSettings` object defaults `bind_host` to `127.0.0.1`, requires an explicit bind port, accepts numeric loopback addresses, and rejects wildcard, LAN/public, and hostname bind values. Running `python -m app` starts the browser generation slice on `127.0.0.1:8000` with the configured local production runtime adapter.
 
-`LlamaCppModelRuntime` is the only production model adapter. It uses an adapter-internal HTTPX transport for the local `llama.cpp` health and OpenAI-compatible streaming-chat endpoints, translates only between transport-private payload/chunk shapes and application-owned runtime values, validates the nested streamed-response shapes before accessing them, maps expected transport and malformed-protocol failures into the Phase 1 runtime error taxonomy, and aborts active transport responses by Sampo request ID. A non-empty structured `delta.tool_calls` response becomes only a bounded application-owned marker containing the Sampo request ID; the adapter ends that stream without normal completion and does not retain tool names or arguments above the transport boundary. Both application settings and direct adapter construction reject non-numeric, non-loopback, credential-bearing, path-bearing, and remote/cloud runtime endpoints. HTTPX environment proxy settings are disabled for adapter calls, and failures do not retry or select another model/provider. The runnable application composes the adapter with the application harness, ephemeral generation service, and browser generation slice.
+`LlamaCppModelRuntime` is the only production model adapter. It is an HTTP client
+for an already-running, user-managed local `llama.cpp` server; Sampo contains no
+`llama.cpp` installation, executable/model-file discovery, subprocess launch,
+termination/restart, model-loading, package-management, or process-supervision
+behavior. The adapter uses an internal HTTPX transport for the local `llama.cpp`
+health and OpenAI-compatible streaming-chat endpoints, translates only between
+transport-private payload/chunk shapes and application-owned runtime values,
+validates the nested streamed-response shapes before accessing them, maps
+expected transport and malformed-protocol failures into the Phase 1 runtime
+error taxonomy, and aborts active transport responses by Sampo request ID. A
+non-empty structured `delta.tool_calls` response becomes only a bounded
+application-owned marker containing the Sampo request ID; the adapter ends that
+stream without normal completion and does not retain tool names or arguments
+above the transport boundary. Both application settings and direct adapter
+construction reject non-numeric, non-loopback, credential-bearing,
+path-bearing, and remote/cloud runtime endpoints. HTTPX environment proxy
+settings are disabled for adapter calls, and failures do not retry or select
+another model/provider. The runnable application composes the adapter with the
+application harness, ephemeral generation service, and browser generation
+slice.
 
 The minimal `ApplicationHarness` accepts only an injected `ModelRuntime`, backend-owned `HarnessPolicy`, and existing `HarnessToolBoundary`. Its request contains only the Sampo request ID and current user prompt. Deterministic context assembly keeps policy and prompt separate and limits their combined text to 16,000 characters. The harness invokes the runtime through the application-owned protocol, forwards normalized stream events, maps runtime failure to `ModelFailed` and cancellation to `ModelStopped`, and maps the bounded unexpected-tool marker to a static failed event without normal completion. A backend-owned cancellation signal is passed into the harness per generation; the harness calls `ModelRuntime.abort()` with the internal request ID, prioritizes cancellation over a concurrently arriving runtime event, and stops forwarding runtime output. The runnable startup path composes this harness with `LlamaCppModelRuntime`; deterministic application/API tests inject `FakeModelRuntime` instead.
 

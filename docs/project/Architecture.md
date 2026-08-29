@@ -63,8 +63,8 @@ To avoid implementation drift, this document uses the following terms consistent
 - **Grant** — an explicit application-stored authorization allowing a Persona to search/read a knowledge collection or logical subtree.
 - **Tool** — a narrow application-owned model-callable read/research capability with a fixed schema.
 - **Research Run** — bounded application/tool activity used to gather evidence for one turn.
-- **Model Runtime** — the local inference service/process used to execute model requests; `llama.cpp` is the first supported runtime.
-- **Model Preset** — reusable local-model identity plus request-scoped generation/sampling defaults that confer no permissions. Host/runtime loading settings are separate unless a future phase explicitly introduces a distinct runtime-profile concept.
+- **Model Runtime** — an already-running, user-managed same-machine inference service that Sampo reaches through a configured local endpoint; `llama.cpp` HTTP server is the first supported runtime.
+- **Model Preset** — reusable runtime-exposed model identity plus request-scoped generation/sampling defaults that confer no permissions. User-managed runtime process and model-loading settings are outside Sampo configuration.
 - **Thinking** — reasoning content explicitly emitted by the selected local model/runtime separately from the final answer. It does not mean access to hidden internal reasoning.
 - **Passive Observation** — read-only state supplied by a future IDE/engine adapter as evidence.
 
@@ -229,6 +229,15 @@ Equivalent capabilities are forbidden even when exposed under different names.
 
 **Requirement:** The first supported inference runtime is `llama.cpp`.
 
+**Invariant:** The supported `llama.cpp` runtime is an already-running,
+user-managed same-machine HTTP service. Sampo connects to it through a
+configured loopback endpoint and does not install, bundle, download, discover,
+launch, terminate, restart, update, package-manage, or supervise the
+`llama.cpp` executable or its server process. Sampo also does not discover or
+load GGUF files or construct process/CLI launch arguments on the runtime's
+behalf. Changing this ownership boundary requires an explicit architecture
+change.
+
 **Invariant:** The standard application must not require a paid cloud service.
 
 **Requirement:** Software dependencies and local services required by the standard application must be free/open-source. External public websites/content sources used only as research evidence are not required to be open-source, but the standard application must not depend on a paid research service or paid account to provide its core behavior.
@@ -343,7 +352,7 @@ The model cannot modify its own domain allowlist.
 │ Tool authorization / policy                                       │
 │ Safe web gateway                                                   │
 │ Passive-context adapters (future)                                 │
-│ llama.cpp configuration / lifecycle                               │
+│ llama.cpp connection / request lifecycle                          │
 │                                                                    │
 │                 ┌──────────────────────────────┐                   │
 │                 │ Application-owned Harness    │                   │
@@ -383,7 +392,7 @@ It owns user interaction for:
 - Persona selection and management;
 - conversation navigation;
 - model selection/override controls;
-- model runtime and generation/sampling settings;
+- model-runtime connection and generation/sampling settings;
 - model-emitted reasoning/Thinking display and controls when supported;
 - knowledge browsing and Persona grants;
 - memory approval/edit/delete UI;
@@ -391,9 +400,9 @@ It owns user interaction for:
 - attachment/image submission;
 - source/citation display;
 - detailed research-trace display;
-- settings and local model configuration.
+- application settings, runtime connection, and runtime-exposed model selection.
 
-**Invariant:** Core authorization, research, retrieval, persistence enforcement, web policy, tool implementation, and model lifecycle logic belong in the backend.
+**Invariant:** Core authorization, research, retrieval, persistence enforcement, web policy, tool implementation, and model-request lifecycle logic belong in the backend.
 
 ### 6.2 Application backend
 
@@ -403,7 +412,7 @@ It owns:
 
 - Persona persistence and effective configuration;
 - conversation persistence, editing, and regeneration;
-- model/runtime configuration;
+- model-runtime endpoint, model-identifier, and request configuration;
 - model preset and generation/sampling configuration;
 - persistence of permitted conversation-level model/generation overrides;
 - model-emitted reasoning events/metadata when the selected model/runtime exposes them;
@@ -419,7 +428,7 @@ It owns:
 - application-owned tool implementations;
 - safe web research and actual network access;
 - passive observation adapters when implemented;
-- llama.cpp lifecycle and runtime interaction.
+- `llama.cpp` HTTP interaction and per-request lifecycle.
 
 ### 6.3 Application-owned harness
 
@@ -444,6 +453,14 @@ The harness is responsible only for model-facing orchestration needed to answer 
 The model-runtime boundary translates application-owned requests/events into the concrete `llama.cpp` interface.
 
 It should expose a narrow application-owned contract rather than allowing the rest of the product to depend on `llama.cpp` transport details.
+
+**Invariant:** This adapter is an HTTP client boundary for a separately running,
+user-managed local runtime. It may validate and store connection settings,
+probe health/capabilities, translate requests and streams, cancel an owning
+inference request through the supported transport, and normalize failures. It
+must not become a runtime installer, executable/model-file discovery layer,
+process launcher/supervisor, process terminator/restart controller, package
+manager, or model-loading manager.
 
 Conceptually:
 
@@ -497,7 +514,7 @@ The trusted application backend necessarily performs some host operations that t
 
 - reading files/resources inside explicitly registered knowledge-source boundaries;
 - writing the application's own database, indexes, caches, configuration, and user-approved state;
-- starting, stopping, or communicating with the configured local `llama.cpp` runtime;
+- communicating with the configured, already-running local `llama.cpp` HTTP runtime and cancelling individual inference requests;
 - performing safe, allowlist-constrained outbound web requests for authorized research;
 - opening local parser/indexing operations required by deterministic application workflows.
 
@@ -1457,7 +1474,11 @@ Observation data remains untrusted evidence rather than runtime authority.
 
 **Requirement:** `llama.cpp` is the first supported local inference runtime.
 
-The application should support local models exposed through the selected `llama.cpp` integration without requiring cloud inference.
+The application supports models exposed by an independently started and
+configured local `llama.cpp` HTTP server without requiring cloud inference.
+The user owns runtime installation, upgrades, executable location, server
+startup/shutdown, process supervision, model-file discovery/loading, and all
+process-level CPU/GPU/batch/context configuration.
 
 ### 20.2 Runtime abstraction
 
@@ -1484,32 +1505,44 @@ If the selected model lacks a required capability, the application should clearl
 
 ### 20.4 Local-only model policy
 
-**Invariant:** The configured inference runtime/model endpoint runs on the same local machine as the workspace and is reached through a local process, loopback interface, or equivalent local IPC boundary. A LAN/remote inference host is outside the current architecture.
+**Invariant:** The configured inference runtime/model endpoint belongs to an
+already-running service on the same local machine as the workspace and is
+reached through a numeric loopback HTTP endpoint. A LAN/remote inference host
+is outside the current architecture.
 
 **Invariant:** Selecting/configuring a model must not route prompts, images, knowledge, memory, reasoning content, or project data to remote/cloud LLM services.
 
-**Invariant:** If the selected local model is missing, fails to load, crashes, or lacks a required capability, the application must not silently fall back to another model or any remote service. The failure/required user choice must be surfaced explicitly.
+**Invariant:** If the user-managed runtime or selected local model is missing,
+offline, fails to load, crashes, or lacks a required capability, the application
+must not install or launch a replacement, restart the server, silently fall
+back to another model, or use any remote service. The failure/required user
+choice must be surfaced explicitly.
 
 **Requirement:** Runtime request cancellation and runtime failure propagate back to the owning turn so the conversation records a truthful stopped/failed state rather than hanging or claiming completion.
 
-### 20.5 Model runtime settings
+### 20.5 Runtime connection and request settings
 
-**Requirement:** The frontend exposes relevant local model/runtime configuration required to operate `llama.cpp` effectively.
+**Requirement:** Sampo owns configuration for the local HTTP endpoint, runtime-
+exposed model identifiers, connection/request timeouts, and request-scoped
+generation/sampling parameters supported by the active runtime. The frontend
+may expose these Sampo-owned settings where appropriate.
 
-Runtime settings are settings whose effect concerns model loading, server/runtime behavior, or resource use rather than one individual generation. Depending on the concrete `llama.cpp` integration, examples may include:
+**Invariant:** Host/process/model-loading settings belong to the independently
+managed `llama.cpp` instance, not Sampo. This includes executable paths,
+installation/update choices, CLI arguments, CPU threads, GPU offload/layers,
+batch settings, server startup behavior, model-file discovery/loading, and
+restart/reload operations. Sampo must not present controls that claim to apply
+or manage those settings.
 
-- context-size/runtime context configuration;
-- CPU thread configuration;
-- GPU offload/layer configuration;
-- batch-related configuration;
-- model loading/runtime options;
-- other supported local-runtime parameters that materially affect performance or capability.
+**Requirement:** Sampo may report runtime-supplied health, capability, model,
+or version information as status. If the external runtime requires a process
+restart or model reload, Sampo may explain that the user must perform it outside
+Sampo, but it must not perform or imply ownership of that action.
 
-**Requirement:** Settings that require a model/runtime reload or restart must be represented distinctly from request-scoped generation settings. The UI must not imply that a restart-required setting has taken effect when it has not.
-
-**Preference:** Expose safe/common runtime settings directly and place rarely needed or model-specific settings under an advanced section rather than overwhelming the default settings surface.
-
-**Invariant:** Host/runtime loading settings do not participate in the model-preset → Persona → conversation sampling inheritance chain. They are backend/runtime configuration and may require reload/restart. A Persona or conversation may select a model/preset, but changing a Persona must not silently mutate host-level CPU/GPU/thread/process settings.
+**Invariant:** Connection/model-identifier configuration and request-scoped
+generation settings remain distinct. A Persona or conversation may select a
+runtime-exposed model identifier or sampling preset without mutating the
+external server's process or model-loading configuration.
 
 ### 20.6 Generation and sampling parameters
 
@@ -1559,13 +1592,21 @@ The UI should support, when the runtime/model provides the necessary information
 
 **Requirement:** If a model does not emit a separate reasoning channel/content form, the UI must not imply that hidden reasoning is available.
 
-### 20.8 Model artifact identity and provenance
+### 20.8 Model identity and provenance
 
-**Requirement:** A registered local model has a stable application identity that is distinct from its mutable filename, path, or display name.
+**Requirement:** A registered runtime-exposed model has a stable application
+identity distinct from its mutable runtime identifier or display name.
 
-**Requirement:** Where practical, model registration records enough artifact metadata to identify what was actually used, including a content hash and basic format/model metadata such as size, model family/architecture, and quantization when available. Historical assistant responses should retain or reference this stable artifact identity.
+**Requirement:** Where the external runtime reports model/artifact metadata,
+Sampo records enough available identity information for practical provenance,
+such as the runtime model identifier, family/architecture, quantization,
+version, or content identity. Historical assistant responses should retain or
+reference the identity actually selected. Sampo does not locate, open, hash,
+discover, or load GGUF files to obtain this metadata.
 
-**Invariant:** A model artifact, its filename, embedded metadata, chat template, or other model-supplied content cannot grant tools, knowledge access, web access, memory authority, or host capability.
+**Invariant:** A runtime model identifier, runtime-reported artifact metadata,
+chat template, or other model-supplied content cannot grant tools, knowledge
+access, web access, memory authority, or host capability.
 
 ### 20.9 Model qualification
 
@@ -1721,9 +1762,13 @@ The UI should expose Persona memory as explicit user-controlled state rather tha
 
 **Requirement:** The frontend provides a dedicated model/settings surface that distinguishes:
 
-- model/runtime settings that affect `llama.cpp` loading, resource use, or server behavior;
+- Sampo-owned runtime connection settings and runtime-exposed model identifiers;
 - generation/sampling settings that may be changed per model preset, Persona, or conversation;
 - reasoning controls and budgets when supported by the selected model/runtime.
+
+**Invariant:** The model/settings surface does not install or control the
+external `llama.cpp` server and does not expose process startup, CPU/GPU,
+batching, executable, GGUF discovery/loading, restart, or supervision controls.
 
 **Requirement:** The UI displays the effective setting source/inheritance clearly enough that the user can tell whether a value comes from the model preset, Persona, or conversation override.
 
@@ -1742,7 +1787,7 @@ The UI should expose Persona memory as explicit user-controlled state rather tha
 - conversations/messages;
 - conversation attachments and attachment metadata retained by the application;
 - conversation model overrides;
-- model presets and supported runtime/generation configuration;
+- model presets and supported runtime-connection/generation configuration;
 - Persona and conversation generation/sampling overrides;
 - model-emitted reasoning/Thinking content and associated metrics when retained with a response;
 - Persona memory proposals and approved memories;
@@ -1750,7 +1795,7 @@ The UI should expose Persona memory as explicit user-controlled state rather tha
 - knowledge grants;
 - indexes;
 - research traces;
-- model/runtime configuration.
+- runtime-connection and model-identifier configuration.
 
 ### 23.2 User control and deletion
 
@@ -1835,7 +1880,9 @@ Multimodal:            active local model vision capability
 IDE/engine awareness:  future local read-only observation adapters
 ```
 
-**Preference:** One application process plus the local `llama.cpp` model runtime is preferable to a distributed collection of services unless measured requirements justify additional processes.
+**Preference:** One Sampo application process connecting to the separately
+operated local `llama.cpp` HTTP service is preferable to a distributed
+collection of additional services unless measured requirements justify them.
 
 **Requirement:** Required application software dependencies and local runtime services remain free/open-source, consistent with Section 4.3.
 
@@ -2112,7 +2159,8 @@ Test that incompatible model capabilities are surfaced explicitly rather than pr
 Test that:
 
 - unsupported generation parameters are not silently treated as effective;
-- restart/reload-required runtime settings are distinguishable from request-scoped sampling settings;
+- Sampo-owned connection/model-identifier settings remain distinguishable from request-scoped sampling settings;
+- no Sampo runtime setting or control claims ownership of external `llama.cpp` installation, process startup/restart, supervision, or model loading;
 - model-preset → Persona → conversation setting precedence behaves deterministically;
 - changing a conversation override does not mutate inherited defaults.
 
@@ -2279,9 +2327,9 @@ The following details are intentionally left to implementation-phase design beca
 
 - exact Persona knowledge-grant inheritance representation and UI, provided access remains explicit, understandable, and fail-closed;
 - exact effective Persona configuration snapshot/hash representation for historical assistant responses, provided it is sufficient for practical provenance without requiring a separately navigable Persona revision history;
-- exact `llama.cpp` transport/API mode, model-loading lifecycle integration, tool-call encoding, and reasoning-content extraction mode, provided the application-owned runtime boundary remains stable;
-- exact local-model artifact metadata fields/hash strategy and lightweight qualification criteria, provided stable artifact identity and truthful capability/compatibility reporting remain satisfied;
-- exact set of advanced `llama.cpp` runtime/sampling controls exposed in each UI tier, provided capability detection and inheritance remain explicit;
+- exact compatible `llama.cpp` HTTP/API details, tool-call encoding, and reasoning-content extraction mode behind the adapter, provided the application-owned runtime boundary remains stable and process ownership remains external;
+- exact runtime-reported model identity/provenance fields and lightweight qualification criteria, provided stable application identity and truthful capability/compatibility reporting remain satisfied without Sampo discovering or loading model files;
+- exact set of request-scoped `llama.cpp` generation/sampling controls exposed in each UI tier, provided capability detection and inheritance remain explicit;
 - exact web search provider or search-engine integration, provided the standard path requires no paid research service/account and preserves the domain-allowlist, privacy, and safe-fetch requirements;
 - exact supported document/file-format parser set;
 - exact source-classification workflow (for example user-assigned metadata, deterministic rules, or user-approved model suggestions), provided source authority/type/status are not silently fabricated;

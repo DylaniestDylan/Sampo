@@ -178,7 +178,8 @@ In particular:
 
 - browser/UI code must not become the enforcing authority for permissions or security policy;
 - the harness remains model-facing orchestration rather than a second durable application state layer;
-- runtime-specific `llama.cpp` transport details remain behind the application-owned runtime adapter;
+- runtime-specific `llama.cpp` HTTP transport details remain behind the application-owned runtime adapter;
+- Sampo connects to an already-running, user-managed local `llama.cpp` HTTP service. Do not add `llama.cpp` installation, executable discovery, subprocess launch/supervision, process termination/restart, package management, or model-loading lifecycle management unless the user explicitly approves another change to `docs/project/Architecture.md`;
 - later-phase knowledge, research, memory, and observation behavior must not be smuggled into earlier phases through generic abstractions or placeholders.
 
 ## Dependency and Change Discipline

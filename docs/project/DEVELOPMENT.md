@@ -70,19 +70,37 @@ curl --fail http://127.0.0.1:8000/health
 The expected response is `{"status":"ok"}`. This reports only the Sampo process; it does not report model-runtime availability. Stop the server with Ctrl-C.
 
 
-## Running the Local Model Runtime
+## Connecting to the User-Managed Local Model Runtime
 
-**Current status:** The production adapter is implemented and deterministically tested, but the real-runtime launch/smoke path is intentionally deferred to P01.17.
+**Current status:** The production HTTP adapter is implemented and
+deterministically tested, but the opt-in real-runtime smoke path is deferred to
+P01.17.
 
-The implemented backend configuration defaults to `http://127.0.0.1:8080` and model identity `local-model`. Runtime endpoints must use an explicit numeric loopback address and port; hostname, LAN, public, credential-bearing, and path-bearing URLs are rejected. No environment proxy or remote/cloud fallback is used.
+The user or developer installs, starts, configures, stops, and updates
+`llama.cpp` independently. Sampo does not discover an executable, launch or
+supervise `llama-server`, construct CLI arguments, load GGUF files, or manage
+CPU/GPU/batch/model-loading settings. Stop Generation cancels the active HTTP
+generation request; it does not stop the external server.
+
+The implemented Sampo connection configuration defaults to
+`http://127.0.0.1:8080` and model identity `local-model`. Runtime endpoints must
+use an explicit numeric loopback address and port; hostname, LAN, public,
+credential-bearing, and path-bearing URLs are rejected. No environment proxy
+or remote/cloud fallback is used.
 
 When P01.17 verifies a working local `llama.cpp` runtime path, document here:
 
-- the supported local runtime mode;
-- the exact local startup/configuration procedure used by Sampo;
-- how Sampo is pointed at the local runtime;
+- the independently executed, verified procedure the user/developer used to
+  start a supported `llama.cpp` HTTP server;
+- the local HTTP endpoint exposed by that server;
+- how Sampo is pointed at that endpoint and runtime-exposed model identifier;
 - how to verify runtime availability separately from Sampo process health;
+- how to run the opt-in smoke path;
 - any model/runtime requirements needed for the Phase 1 smoke path.
+
+No `llama.cpp` launch command is documented yet because none has been executed
+successfully in the verified development environment. When one is recorded, it
+will remain a user/developer prerequisite rather than a Sampo-owned operation.
 
 
 ## Running Automated Tests
@@ -150,9 +168,14 @@ The startup-focused command reports one passing test, the adapter-focused comman
 
 **Current status:** Not available yet.
 
-Phase 1 requires an opt-in real-runtime smoke path. Once implemented, document the exact prerequisites and command/checklist here.
+Phase 1 requires an opt-in smoke path against an already-running,
+user-managed local runtime. Once implemented, document the exact independently
+performed prerequisite and smoke command/checklist here.
 
-The smoke procedure should verify at minimum the behavior required by the active Phase 1 contract, including successful local streaming and truthful cancellation.
+The smoke procedure should verify at minimum the behavior required by the active
+Phase 1 contract, including successful local streaming, truthful per-request
+cancellation without terminating the server, visible external-runtime failure,
+and no fallback.
 
 Keep the real-runtime smoke path separate from the default deterministic test suite.
 

@@ -12,7 +12,7 @@
 
 Phase 1 establishes the smallest trustworthy vertical slice of Sampo:
 
-> A local Python/FastAPI web application with a Jinja2/Alpine.js UI shell that can send one ephemeral user prompt through an application-owned harness to a local `llama.cpp` runtime, stream the response back to the browser, cancel the active generation truthfully, and expose no model-facing host tools or action capabilities.
+> A local Python/FastAPI web application with a Jinja2/Alpine.js UI shell that can send one ephemeral user prompt through an application-owned harness to an already-running, user-managed local `llama.cpp` HTTP server, stream the response back to the browser, cancel the active generation request truthfully, and expose no model-facing host tools or action capabilities.
 
 This phase exists to prove the product's core boundaries before durable Personas, conversations, knowledge, research, memory, or richer model controls are added.
 
@@ -43,9 +43,14 @@ The model-facing surface must not expose generic filesystem access, shell/proces
 
 Phase 1 has **zero model-callable tools throughout this phase**. The harness/tool boundary must exist, but the registered tool set remains empty. Any unexpected model tool request fails closed.
 
-### 2.3 Local-only operation
+### 2.3 Local-only external runtime
 
-The application and inference runtime are local-only. The configured runtime endpoint must resolve to the same machine through an approved loopback/local IPC boundary. No remote/cloud model fallback is permitted (`docs/project/Architecture.md` §§4.3, 20.4).
+The application and inference runtime are local-only. The user independently
+starts and configures `llama.cpp`; Sampo connects to that already-running
+service through a configured numeric-loopback HTTP endpoint. Sampo must not
+install, discover, launch, terminate, restart, update, supervise, or configure
+the server process or load its model files. No remote/cloud model fallback is
+permitted (`docs/project/Architecture.md` §§4.3, 20.1, 20.4–20.5).
 
 ### 2.4 Stable backend boundary
 
@@ -57,11 +62,18 @@ The normal web server binds to loopback only. Required frontend assets are local
 
 ### 2.6 Truthful lifecycle and cancellation
 
-A generation has an explicit lifecycle. Cancellation must reach the runtime and must stop further work for that turn. Runtime failure or cancellation must never be surfaced as normal completion (`docs/project/Architecture.md` §§8.6, 20.4, 28.13).
+A generation has an explicit lifecycle. Cancellation must reach the external
+runtime transport and cancel/close the owning HTTP generation request; it must
+not stop the `llama.cpp` server process. Runtime failure or cancellation must
+never be surfaced as normal completion (`docs/project/Architecture.md` §§8.6,
+20.4, 28.13).
 
 ### 2.7 Lightweight default
 
-Prefer one Sampo application process plus the local `llama.cpp` runtime. Do not introduce a message broker, workflow engine, vector database, container fleet, scheduler, extra model service, or heavyweight SPA framework (`docs/project/Architecture.md` §§4.9, 24).
+Prefer one Sampo application process connecting to the separately operated local
+`llama.cpp` HTTP service. Do not introduce a message broker, workflow engine,
+vector database, container fleet, scheduler, extra model service, or heavyweight
+SPA framework (`docs/project/Architecture.md` §§4.9, 24).
 
 ---
 
@@ -137,7 +149,8 @@ Durable conversation/message persistence is Phase 2.
 - API tests for localhost trust controls.
 - Harness tests against the fake runtime.
 - Runtime-adapter tests with deterministic mocked transport.
-- One opt-in smoke test against a real local `llama.cpp` runtime.
+- One opt-in smoke path against an externally managed, already-running local
+  `llama.cpp` HTTP runtime.
 
 ---
 
@@ -172,6 +185,11 @@ These features belong to later phases and should **not** be pulled into Phase 1 
 ### Not part of the current architecture
 
 Do not add generic model-facing host capabilities, autonomous actions, cloud LLM providers, plugin ecosystems that expand host authority, LAN/public deployment, background agents, telemetry, or paid-service dependencies.
+
+Do not add `llama.cpp` installation, executable discovery, subprocess launch or
+supervision, process termination/restart, process/CLI configuration, GGUF
+discovery/loading, or automatic model downloads. Those are permanently outside
+the approved runtime relationship unless Architecture changes again.
 
 ---
 
@@ -221,7 +239,7 @@ It should cover only what Phase 1 needs, for example:
 
 - Sampo bind host;
 - Sampo bind port;
-- `llama.cpp` local endpoint/process mode required by the chosen adapter;
+- `llama.cpp` numeric-loopback HTTP endpoint for the already-running external runtime;
 - default Phase 1 model identifier if required by the runtime transport;
 - practical request/stream timeout limits.
 
@@ -459,7 +477,7 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ### P01.08 — First `llama.cpp` adapter
 
-- [x] **P01.08.01 — Add Phase 1 runtime endpoint/model configuration.** Keep it backend-only.
+- [x] **P01.08.01 — Add Phase 1 runtime connection endpoint and runtime-exposed model-identifier configuration.** Keep it backend-only.
 - [x] **P01.08.02 — Validate that configured runtime transport is same-machine/loopback only.** Reject remote hosts explicitly.
 - [x] **P01.08.03 — Implement runtime availability/capability probing through the adapter.** Normalize results into `RuntimeCapabilities`.
 - [x] **P01.08.04 — Implement request translation from `ModelRequest` to the selected `llama.cpp` transport.** Keep translation inside the adapter.
@@ -590,23 +608,27 @@ A task is complete only when its focused tests pass and the reviewer can explain
 
 ---
 
-### P01.17 — Real local `llama.cpp` smoke path
+### P01.17 — Externally managed real `llama.cpp` HTTP smoke path
 
-Keep this separate from the deterministic default test suite.
+Keep this separate from the deterministic default test suite. The developer or
+user starts and configures the local `llama.cpp` HTTP server independently
+before opting in; the smoke path must not manage that process.
 
-- [ ] **P01.17.01 — Document the exact supported Phase 1 `llama.cpp` launch/connection assumptions.** This is the concrete transport choice deferred by `docs/project/Architecture.md` §32.
-- [ ] **P01.17.02 — Add an opt-in runtime connectivity smoke test.** Skip cleanly when no local runtime is configured.
+- [ ] **P01.17.01 — Document the exact supported Phase 1 `llama.cpp` HTTP connection assumptions.** Record the expected already-running server interface and Sampo configuration, not server launch behavior. This is the concrete transport choice deferred by `docs/project/Architecture.md` §32.
+- [ ] **P01.17.02 — Add an opt-in external-runtime connectivity smoke test.** Skip cleanly when no local runtime endpoint is configured or the user-managed runtime is not running.
 - [ ] **P01.17.03 — Verify a real local prompt streams through the adapter and harness.**
-- [ ] **P01.17.04 — Verify Stop Generation reaches the real local runtime path.** If the runtime transport cannot provide truthful cancellation, Phase 1 is not accepted until the integration is changed or the architectural conflict is presented to the user.
-- [ ] **P01.17.05 — Verify disconnect/crash produces a visible failed generation with no fallback.**
+- [ ] **P01.17.04 — Verify Stop Generation cancels the owning request through the real local HTTP runtime path without stopping the server process.** If the runtime transport cannot provide truthful request cancellation, Phase 1 is not accepted until the integration is changed or the architectural conflict is presented to the user.
+- [ ] **P01.17.05 — Verify external-runtime disconnect/crash produces a visible failed generation with no fallback, replacement launch, or process restart.**
 
-**Review checkpoint:** the deterministic test architecture has been proven against the first real runtime without bypassing the adapter/harness boundaries.
+**Review checkpoint:** the deterministic test architecture has been proven
+against the first externally managed real runtime without bypassing the
+adapter/harness boundaries or introducing runtime process management.
 
 ---
 
 ### P01.18 — Documentation, cleanup, and handoff
 
-- [ ] **P01.18.01 — Finalize `docs/project/DEVELOPMENT.md` with verified local run instructions for Sampo + local `llama.cpp`.** If a `README.md` exists, it should link to `docs/project/DEVELOPMENT.md` rather than duplicate the commands.
+- [ ] **P01.18.01 — Finalize `docs/project/DEVELOPMENT.md` with verified instructions for connecting Sampo to a user-started local `llama.cpp` HTTP server.** If a `README.md` exists, it should link to `docs/project/DEVELOPMENT.md` rather than duplicate the commands.
 - [ ] **P01.18.02 — If a human-facing module-boundary explanation is useful, place it under `docs/human/notes/`.** It is explanatory and non-authoritative; do not duplicate or redefine `docs/project/Architecture.md` or the active phase contract.
 - [ ] **P01.18.03 — Remove unused dependencies, dead scaffolding, and temporary debug endpoints.**
 - [ ] **P01.18.04 — Run the complete deterministic test suite offline.** Internet access must not be required.
@@ -655,6 +677,7 @@ Phase 1 is complete only when all of the following are true.
 - [ ] Browser code communicates only with Sampo's application API, not directly with `llama.cpp`.
 - [ ] Application code outside `app/model_runtime` does not depend on `llama.cpp` transport schemas.
 - [ ] `llama.cpp` is the only production model-runtime adapter in Phase 1.
+- [ ] Sampo connects to an already-running, user-managed local `llama.cpp` HTTP server and contains no runtime installation, executable/model discovery, launch, restart, termination, or supervision path.
 - [ ] Remote/cloud model endpoints are rejected and no cloud fallback exists.
 - [ ] Runtime unavailability, incompatibility, malformed output, or crash is surfaced explicitly.
 
